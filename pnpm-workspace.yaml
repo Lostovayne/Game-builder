@@ -4,3 +4,6 @@ allowBuilds:
   sharp: true
   unrs-resolver: true
   msw: false
+  bufferutil: true
+  core-js: true
+  utf-8-validate: true

@@ -6,10 +6,16 @@ import {
   EmptyTitle,
 } from "@/components/ui/empty"
 import Image from "next/image"
+import { auth } from "@clerk/nextjs/server"
+import { OrganizationSwitcher,UserButton } from "@clerk/nextjs"
 
-export default function Page() {
+export default async function Page() {
+  await auth.protect({
+    unauthenticatedUrl: "/sign-in",
+  })
+
   return (
-    <div className="flex min-h-svh items-center justify-center">
+    <div className="flex min-h-svh items-center justify-center flex-col gap-4">
       <Empty>
         <EmptyHeader>
           <EmptyMedia>
@@ -24,6 +30,8 @@ export default function Page() {
           </EmptyDescription>
         </EmptyHeader>
       </Empty>
+      <UserButton />
+      <OrganizationSwitcher/>
     </div>
   )
 }
