@@ -1,6 +1,6 @@
 import { ClerkProvider } from "@clerk/nextjs"
 import { shadcn } from "@clerk/ui/themes"
-import { Geist, Geist_Mono } from "next/font/google"
+import { Fraunces, Geist, Geist_Mono } from "next/font/google"
 
 import { ThemeProvider } from "@/components/theme-provider"
 import { cn } from "@/lib/utils"
@@ -8,6 +8,8 @@ import { Metadata } from "next"
 import "./globals.css"
 
 const geist = Geist({ subsets: ["latin"], variable: "--font-sans" })
+
+const fontLogo = Fraunces({ subsets: ["latin"], variable: "--font-logo" })
 
 const fontMono = Geist_Mono({
   subsets: ["latin"],
@@ -35,6 +37,7 @@ export default function RootLayout({
       className={cn(
         "antialiased",
         fontMono.variable,
+        fontLogo.variable,
         "font-sans",
         geist.variable
       )}
