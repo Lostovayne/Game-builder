@@ -30,8 +30,6 @@ export default async function Page() {
           </EmptyDescription>
         </EmptyHeader>
       </Empty>
-      <UserButton />
-      <OrganizationSwitcher />
     </div>
   )
 }
