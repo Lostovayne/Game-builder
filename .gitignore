@@ -38,3 +38,6 @@ next-env.d.ts
 
 # Skills
 .atl/
+
+# codegraph — índice local regenerable
+.codegraph/
