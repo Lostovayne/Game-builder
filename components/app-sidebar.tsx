@@ -4,7 +4,8 @@ import Image from "next/image"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { OrganizationSwitcher, UserButton } from "@clerk/nextjs"
-import { CoinsIcon, MessageSquareIcon, SquarePenIcon } from "lucide-react"
+import { CoinsIcon, SquarePenIcon, MessageSquareIcon } from "lucide-react"
+import { Empty, EmptyDescription } from "@/components/ui/empty"
 
 import {
   Sidebar,
@@ -57,15 +58,20 @@ export function AppSidebar() {
         </SidebarGroup>
         <SidebarGroup>
           <SidebarGroupLabel>Recents</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
+          <SidebarGroupContent className="overflow-hidden">
+            <SidebarMenu className="hidden group-data-[collapsible=icon]:flex">
               <SidebarMenuItem>
-                <SidebarMenuButton>
+                <SidebarMenuButton tooltip="Recents">
                   <MessageSquareIcon />
                   <span>Recents</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
             </SidebarMenu>
+            <Empty className="mt-2 overflow-hidden border p-2 opacity-100 transition-[opacity,margin,height,padding,border-width] delay-200 duration-200 ease-linear group-data-[collapsible=icon]:pointer-events-none group-data-[collapsible=icon]:invisible group-data-[collapsible=icon]:mt-0 group-data-[collapsible=icon]:h-0 group-data-[collapsible=icon]:border-0 group-data-[collapsible=icon]:p-0 group-data-[collapsible=icon]:opacity-0 group-data-[collapsible=icon]:delay-0">
+              <EmptyDescription className="text-xs whitespace-nowrap">
+                Your games will live here.
+              </EmptyDescription>
+            </Empty>
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
