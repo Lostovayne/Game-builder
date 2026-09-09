@@ -1,5 +1,7 @@
+import { ChatComposer } from "@/components/chat-composer"
 import {
   Empty,
+  EmptyContent,
   EmptyDescription,
   EmptyHeader,
   EmptyMedia,
@@ -7,7 +9,6 @@ import {
 } from "@/components/ui/empty"
 import Image from "next/image"
 import { auth } from "@clerk/nextjs/server"
-import { OrganizationSwitcher, UserButton } from "@clerk/nextjs"
 
 export default async function Page() {
   await auth.protect({
@@ -29,6 +30,9 @@ export default async function Page() {
             own words. If you can describe it, you can play it.
           </EmptyDescription>
         </EmptyHeader>
+        <EmptyContent className="max-w-xl">
+          <ChatComposer />
+        </EmptyContent>
       </Empty>
     </div>
   )
