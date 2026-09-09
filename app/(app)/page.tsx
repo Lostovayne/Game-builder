@@ -7,8 +7,8 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from "@/components/ui/empty"
-import Image from "next/image"
 import { auth } from "@clerk/nextjs/server"
+import Image from "next/image"
 
 export default async function Page() {
   await auth.protect({
