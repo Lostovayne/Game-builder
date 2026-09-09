@@ -42,3 +42,6 @@ next-env.d.ts
 # codegraph — índice local regenerable
 .codegraph/
 .neon
+
+# pi agent local
+.pi/
