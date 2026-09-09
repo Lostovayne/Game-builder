@@ -1,3 +1,5 @@
+import "server-only"
+
 import { parseEnv } from "@neon/env"
 import { drizzle } from "drizzle-orm/node-postgres"
 import { Pool } from "pg"
@@ -15,8 +17,15 @@ const { postgres } = parseEnv(neonConfig, ["DATABASE_URL"])
 // Reuse the pool across hot reloads in dev so we don't exhaust connections.
 const globalForDb = globalThis as unknown as { pool?: Pool }
 
-const pool =
-  globalForDb.pool ?? new Pool({ connectionString: postgres.databaseUrl })
+// pg v9 will reinterpret `sslmode=require` with weaker libpq semantics. Pin
+// `verify-full` to keep the current strict behavior and silence the
+// SECURITY WARNING pg-connection-string emits on every Pool creation.
+const connectionString = postgres.databaseUrl.replace(
+  /([?&])sslmode=require(&|$)/,
+  "$1sslmode=verify-full$2"
+)
+
+const pool = globalForDb.pool ?? new Pool({ connectionString })
 
 if (process.env.NODE_ENV !== "production") {
   globalForDb.pool = pool
