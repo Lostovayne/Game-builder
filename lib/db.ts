@@ -6,6 +6,10 @@ import { Pool } from "pg"
 
 import neonConfig from "@/neon"
 
+// Validate env first so a missing/malformed variable fails here with a clear
+// message (see lib/env.ts) instead of a cryptic error deep inside the driver.
+import "@/lib/env"
+
 import * as schema from "@/db/schema"
 
 // Pooled connection (PgBouncer) — the right one for request traffic.
