@@ -1,6 +1,11 @@
 "use client"
 
 import { Empty, EmptyDescription } from "@/components/ui/empty"
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
 import { OrganizationSwitcher, UserButton } from "@clerk/nextjs"
 import { CoinsIcon, MessageSquareIcon, SquarePenIcon } from "lucide-react"
 import Image from "next/image"
@@ -66,10 +71,43 @@ export function AppSidebar({ games }: { games: SidebarGame[] }) {
           <SidebarGroupContent className="overflow-hidden">
             <SidebarMenu className="hidden group-data-[collapsible=icon]:flex">
               <SidebarMenuItem>
-                <SidebarMenuButton tooltip="Recents">
-                  <MessageSquareIcon />
-                  <span>Recents</span>
-                </SidebarMenuButton>
+                <Popover>
+                  <PopoverTrigger
+                    render={
+                      <SidebarMenuButton tooltip="Recents">
+                        <MessageSquareIcon />
+                        <span>Recents</span>
+                      </SidebarMenuButton>
+                    }
+                  />
+                  <PopoverContent
+                    side="right"
+                    align="start"
+                    sideOffset={8}
+                    className="w-56 p-1.5"
+                  >
+                    {games.length === 0 ? (
+                      <EmptyDescription className="px-2 py-1.5 text-xs">
+                        Your games will live here.
+                      </EmptyDescription>
+                    ) : (
+                      <SidebarMenu>
+                        {games.map((game) => (
+                          <SidebarMenuItem key={game.id}>
+                            <SidebarMenuButton
+                              render={<Link href={`/games/${game.id}`} />}
+                              isActive={pathname === `/games/${game.id}`}
+                              tooltip={game.title}
+                            >
+                              <MessageSquareIcon />
+                              <span className="truncate">{game.title}</span>
+                            </SidebarMenuButton>
+                          </SidebarMenuItem>
+                        ))}
+                      </SidebarMenu>
+                    )}
+                  </PopoverContent>
+                </Popover>
               </SidebarMenuItem>
             </SidebarMenu>
             {games.length === 0 ? (
@@ -79,10 +117,14 @@ export function AppSidebar({ games }: { games: SidebarGame[] }) {
                 </EmptyDescription>
               </Empty>
             ) : (
-              <SidebarMenu>
+              <SidebarMenu className="group-data-[collapsible=icon]:hidden">
                 {games.map((game) => (
                   <SidebarMenuItem key={game.id}>
-                    <SidebarMenuButton tooltip={game.title}>
+                    <SidebarMenuButton
+                      render={<Link href={`/games/${game.id}`} />}
+                      isActive={pathname === `/games/${game.id}`}
+                      tooltip={game.title}
+                    >
                       <MessageSquareIcon />
                       <span className="truncate">{game.title}</span>
                     </SidebarMenuButton>
