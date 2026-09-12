@@ -1,9 +1,11 @@
-export default async function GamePage({
-  params,
-}: {
-  params: Promise<{ id: string }>
-}) {
-  const { id } = await params
+import { auth } from "@clerk/nextjs/server"
+
+export default async function GamePage(props: PageProps<"/games/[id]">) {
+  await auth.protect({
+    unauthenticatedUrl: "/sign-in",
+  })
+
+  const { id } = await props.params
 
   return <p>{id}</p>
 }
