@@ -1,21 +1,9 @@
 "use client"
 
-import {
-  ArrowUp,
-  Axe,
-  Car,
-  ChevronDown,
-  Crosshair,
-  Gamepad2,
-  Grip,
-  Plane,
-  Swords,
-  Zap,
-} from "lucide-react"
+import { ArrowUp, ChevronDown, Grip } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useState, useTransition, type FormEvent } from "react"
 
-import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -29,20 +17,6 @@ import {
   InputGroupTextarea,
 } from "@/components/ui/input-group"
 import { createGame } from "@/lib/games/actions"
-
-const suggestionRows = [
-  [
-    { icon: Axe, label: "Voxel survival" },
-    { icon: Swords, label: "Ink samurai duel" },
-    { icon: Zap, label: "Comic-book firefight" },
-    { icon: Plane, label: "Realistic battlefield" },
-  ],
-  [
-    { icon: Crosshair, label: "Fight-first shooter" },
-    { icon: Car, label: "Jungle expedition drive" },
-    { icon: Gamepad2, label: "Sunny kingdom platformer" },
-  ],
-]
 
 export function ChatComposer() {
   const router = useRouter()
@@ -110,28 +84,6 @@ export function ChatComposer() {
         </InputGroup>
       </form>
       {error ? <p className="text-sm text-destructive">{error}</p> : null}
-      <div className="flex flex-col items-center gap-1.5">
-        {suggestionRows.map((row, rowIndex) => (
-          <div
-            key={rowIndex}
-            className="flex items-center justify-center gap-1.5"
-          >
-            {row.map((suggestion) => (
-              <Button
-                key={suggestion.label}
-                variant="outline"
-                size="sm"
-                type="button"
-                className="rounded-full font-normal text-muted-foreground"
-                onClick={() => setPrompt(suggestion.label)}
-              >
-                <suggestion.icon />
-                {suggestion.label}
-              </Button>
-            ))}
-          </div>
-        ))}
-      </div>
     </div>
   )
 }
