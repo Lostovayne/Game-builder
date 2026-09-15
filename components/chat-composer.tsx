@@ -1,8 +1,7 @@
 "use client"
 
 import { ArrowUp, ChevronDown, Grip } from "lucide-react"
-import { useRouter } from "next/navigation"
-import { useState, useTransition, type FormEvent } from "react"
+import { type SubmitEvent } from "react"
 
 import {
   DropdownMenu,
@@ -16,31 +15,31 @@ import {
   InputGroupButton,
   InputGroupTextarea,
 } from "@/components/ui/input-group"
-import { createGame } from "@/lib/games/actions"
 
-export function ChatComposer() {
-  const router = useRouter()
-  const [prompt, setPrompt] = useState("")
-  const [error, setError] = useState<string | null>(null)
-  const [isPending, startTransition] = useTransition()
+type ChatComposerProps = {
+  value: string
+  onValueChangeAction: (value: string) => void
+  onSubmitAction: (value: string) => void
+  isSubmitting?: boolean
+  error?: string | null
+  placeholder?: string
+}
 
-  const canSubmit = prompt.trim().length > 0 && !isPending
+export function ChatComposer({
+  value,
+  onValueChangeAction,
+  onSubmitAction,
+  isSubmitting = false,
+  error = null,
+  placeholder = "Describe the game you want to build...",
+}: ChatComposerProps) {
+  const canSubmit = value.trim().length > 0 && !isSubmitting
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  function handleSubmit(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault()
-    const title = prompt.trim()
-    if (!title || isPending) return
-
-    setError(null)
-    startTransition(async () => {
-      try {
-        await createGame({ title })
-        setPrompt("")
-        router.refresh()
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Could not create game.")
-      }
-    })
+    const text = value.trim()
+    if (!text || isSubmitting) return
+    onSubmitAction(text)
   }
 
   return (
@@ -49,10 +48,10 @@ export function ChatComposer() {
         <InputGroup>
           <InputGroupTextarea
             rows={1}
-            value={prompt}
-            onChange={(event) => setPrompt(event.target.value)}
+            value={value}
+            onChange={(event) => onValueChangeAction(event.target.value)}
             className="field-sizing-content max-h-48 min-h-10"
-            placeholder="Describe the game you want to build..."
+            placeholder={placeholder}
           />
           <InputGroupAddon align="block-end" className="justify-between">
             <DropdownMenu>

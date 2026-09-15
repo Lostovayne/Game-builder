@@ -1,6 +1,8 @@
 "use client"
 
 import Image from "next/image"
+import { useRouter } from "next/navigation"
+import { useCallback, useEffect, useRef, useState } from "react"
 
 import { ChatComposer } from "@/components/chat-composer"
 import { Bubble, BubbleContent } from "@/components/ui/bubble"
@@ -56,7 +58,30 @@ const MOCK_MESSAGES: MockMessage[] = [
   },
 ]
 
-export function ChatThread() {
+export function ChatThread({
+  initialMessage = null,
+}: {
+  initialMessage?: string | null
+}) {
+  const router = useRouter()
+  const [input, setInput] = useState("")
+  const consumedInitialRef = useRef(false)
+
+  // Temporary stand-in until the thread is wired to useChat.
+  const sendMessage = useCallback((value: string) => {
+    console.log(value)
+    setInput("")
+  }, [])
+
+  // Creation prompt carried over from the landing page (?message=...).
+  // Logged once through the same temporary sendMessage, then removed
+  // from the URL so a refresh doesn't replay it.
+  useEffect(() => {
+    if (!initialMessage || consumedInitialRef.current) return
+    consumedInitialRef.current = true
+    sendMessage(initialMessage)
+    router.replace(window.location.pathname)
+  }, [initialMessage, router, sendMessage])
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <MessageScrollerProvider>
@@ -101,7 +126,12 @@ export function ChatThread() {
         </MessageScroller>
       </MessageScrollerProvider>
       <div className="mx-auto w-full max-w-3xl px-4 pt-2 pb-4">
-        <ChatComposer />
+        <ChatComposer
+          value={input}
+          onValueChangeAction={setInput}
+          onSubmitAction={sendMessage}
+          placeholder="Reply..."
+        />
       </div>
     </div>
   )

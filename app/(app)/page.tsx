@@ -1,4 +1,4 @@
-import { ChatComposer } from "@/components/chat-composer"
+import { CreateGameComposer } from "@/components/create-game-composer"
 import { Button } from "@/components/ui/button"
 import {
   Empty,
@@ -33,7 +33,7 @@ export default async function Page() {
           </EmptyDescription>
         </EmptyHeader>
         <EmptyContent className="max-w-xl gap-6">
-          <ChatComposer />
+          <CreateGameComposer />
           <div className="flex flex-col items-center gap-1.5">
             {suggestionRows.map((row, rowIndex) => (
               <div
