@@ -14,6 +14,8 @@
     "db:push": "drizzle-kit push"
   },
   "dependencies": {
+    "@ai-sdk/anthropic": "^4.0.53",
+    "@ai-sdk/react": "^4.0.103",
     "@base-ui/react": "^1.8.0",
     "@clerk/nextjs": "^7.9.2",
     "@clerk/ui": "^1.32.3",
@@ -21,6 +23,7 @@
     "@neon/env": "^1.3.2",
     "@neondatabase/serverless": "^1.1.0",
     "@shadcn/react": "^0.3.1",
+    "ai": "^7.0.99",
     "class-variance-authority": "^0.7.1",
     "cmdk": "^1.1.1",
     "cn": "^0.2.6",
