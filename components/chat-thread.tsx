@@ -1,8 +1,10 @@
 "use client"
 
+import { useChat } from "@ai-sdk/react"
+import { DefaultChatTransport } from "ai"
 import Image from "next/image"
 import { useRouter } from "next/navigation"
-import { useCallback, useEffect, useRef, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 
 import { ChatComposer } from "@/components/chat-composer"
 import { Bubble, BubbleContent } from "@/components/ui/bubble"
@@ -16,48 +18,6 @@ import {
   MessageScrollerViewport,
 } from "@/components/ui/message-scroller"
 
-type MockMessage = {
-  id: string
-  role: "user" | "assistant"
-  content: string
-}
-
-const MOCK_MESSAGES: MockMessage[] = [
-  {
-    id: "1",
-    role: "user",
-    content: "I want to build a top-down racing game with power-ups.",
-  },
-  {
-    id: "2",
-    role: "assistant",
-    content:
-      "Nice choice! What kind of vibe are you going for — arcade kart racer or something more realistic?",
-  },
-  {
-    id: "3",
-    role: "user",
-    content: "Arcade, definitely. With boost pads and oil slicks.",
-  },
-  {
-    id: "4",
-    role: "assistant",
-    content:
-      "Got it. I'll set up 3 laps, 4 racers, and place boost pads on the corners. Want me to add a desert track theme?",
-  },
-  {
-    id: "5",
-    role: "user",
-    content: "Yes, desert theme with a sunset sky.",
-  },
-  {
-    id: "6",
-    role: "assistant",
-    content:
-      "Done — desert track with sunset sky is ready. Hit play to try it, or tell me what to tweak next.",
-  },
-]
-
 export function ChatThread({
   initialMessage = null,
 }: {
@@ -67,28 +27,37 @@ export function ChatThread({
   const [input, setInput] = useState("")
   const consumedInitialRef = useRef(false)
 
-  // Temporary stand-in until the thread is wired to useChat.
-  const sendMessage = useCallback((value: string) => {
-    console.log(value)
+  const { messages, sendMessage, status, error } = useChat({
+    transport: new DefaultChatTransport({ api: "/api/chat" }),
+  })
+
+  function handleSend(value: string) {
+    void sendMessage({ text: value })
     setInput("")
-  }, [])
+  }
 
   // Creation prompt carried over from the landing page (?message=...).
-  // Logged once through the same temporary sendMessage, then removed
-  // from the URL so a refresh doesn't replay it.
+  // Sent once through useChat, then removed from the URL so a refresh
+  // doesn't replay it.
   useEffect(() => {
     if (!initialMessage || consumedInitialRef.current) return
     consumedInitialRef.current = true
-    sendMessage(initialMessage)
+    void sendMessage({ text: initialMessage })
     router.replace(window.location.pathname)
   }, [initialMessage, router, sendMessage])
+
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <MessageScrollerProvider>
         <MessageScroller className="min-h-0 flex-1">
           <MessageScrollerViewport>
             <MessageScrollerContent className="mx-auto w-full max-w-3xl px-4 py-6">
-              {MOCK_MESSAGES.map((message) =>
+              {messages.length === 0 && status === "ready" ? (
+                <p className="text-center text-sm text-muted-foreground">
+                  Describe what to build or tweak, and I’ll take it from there.
+                </p>
+              ) : null}
+              {messages.map((message) =>
                 message.role === "assistant" ? (
                   <MessageScrollerItem key={message.id}>
                     <Message align="start">
@@ -103,7 +72,13 @@ export function ChatThread({
                       </MessageAvatar>
                       <MessageContent>
                         <Bubble variant="ghost" align="start">
-                          <BubbleContent>{message.content}</BubbleContent>
+                          <BubbleContent>
+                            {message.parts.map((part, index) =>
+                              part.type === "text" ? (
+                                <span key={index}>{part.text}</span>
+                              ) : null
+                            )}
+                          </BubbleContent>
                         </Bubble>
                       </MessageContent>
                     </Message>
@@ -113,7 +88,13 @@ export function ChatThread({
                     <Message align="end">
                       <MessageContent>
                         <Bubble variant="secondary" align="end">
-                          <BubbleContent>{message.content}</BubbleContent>
+                          <BubbleContent>
+                            {message.parts.map((part, index) =>
+                              part.type === "text" ? (
+                                <span key={index}>{part.text}</span>
+                              ) : null
+                            )}
+                          </BubbleContent>
                         </Bubble>
                       </MessageContent>
                     </Message>
@@ -129,7 +110,9 @@ export function ChatThread({
         <ChatComposer
           value={input}
           onValueChangeAction={setInput}
-          onSubmitAction={sendMessage}
+          onSubmitAction={handleSend}
+          isSubmitting={status !== "ready"}
+          error={error?.message ?? null}
           placeholder="Reply..."
         />
       </div>
