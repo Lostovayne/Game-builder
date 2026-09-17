@@ -1,7 +1,7 @@
 "use client"
 
 import { useChat } from "@ai-sdk/react"
-import { DefaultChatTransport } from "ai"
+import { DefaultChatTransport, type UIMessage } from "ai"
 import Image from "next/image"
 import { useRouter } from "next/navigation"
 import { useEffect, useRef, useState } from "react"
@@ -19,8 +19,12 @@ import {
 } from "@/components/ui/message-scroller"
 
 export function ChatThread({
+  gameId,
+  initialMessages,
   initialMessage = null,
 }: {
+  gameId: string
+  initialMessages?: UIMessage[]
   initialMessage?: string | null
 }) {
   const router = useRouter()
@@ -28,7 +32,8 @@ export function ChatThread({
   const consumedInitialRef = useRef(false)
 
   const { messages, sendMessage, status, error } = useChat({
-    transport: new DefaultChatTransport({ api: "/api/chat" }),
+    messages: initialMessages,
+    transport: new DefaultChatTransport({ api: "/api/chat", body: { gameId } }),
   })
 
   function handleSend(value: string) {

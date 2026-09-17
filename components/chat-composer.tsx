@@ -1,7 +1,7 @@
 "use client"
 
 import { ArrowUp, ChevronDown, Grip } from "lucide-react"
-import { type SubmitEvent } from "react"
+import { useLayoutEffect, useRef, type SubmitEvent } from "react"
 
 import {
   DropdownMenu,
@@ -34,12 +34,57 @@ export function ChatComposer({
   placeholder = "Describe the game you want to build...",
 }: ChatComposerProps) {
   const canSubmit = value.trim().length > 0 && !isSubmitting
+  const pendingSelectionRef = useRef<{
+    element: HTMLTextAreaElement
+    position: number
+  } | null>(null)
 
   function handleSubmit(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault()
     const text = value.trim()
     if (!text || isSubmitting) return
     onSubmitAction(text)
+  }
+
+  useLayoutEffect(() => {
+    const pending = pendingSelectionRef.current
+    if (pending === null) return
+    const { element, position } = pending
+    pendingSelectionRef.current = null
+    // Don't move focus if textarea is no longer active
+    if (document.activeElement !== element) return
+    element.setSelectionRange(position, position)
+  }, [value])
+
+  function handleKeyDown(event: React.KeyboardEvent<HTMLTextAreaElement>) {
+    if (event.nativeEvent.isComposing || event.key !== "Enter") return
+
+    // Guard held Enter repeat so exactly one submit fires
+    if (event.repeat) {
+      event.preventDefault()
+      return
+    }
+
+    const isNewlineModifier = event.ctrlKey || event.metaKey
+
+    if (isNewlineModifier) {
+      event.preventDefault()
+      const target = event.currentTarget
+      const start = target.selectionStart ?? value.length
+      const end = target.selectionEnd ?? value.length
+      const nextValue = `${value.slice(0, start)}\n${value.slice(end)}`
+      const nextPosition = start + 1
+      pendingSelectionRef.current = { element: target, position: nextPosition }
+      onValueChangeAction(nextValue)
+      return
+    }
+
+    // Preserve other modifiers (Shift+Enter, Alt+Enter) as native newline
+    if (event.shiftKey || event.altKey) return
+
+    // Plain Enter submits via the form so empty/isSubmitting guards are retained
+    event.preventDefault()
+    event.currentTarget.form?.requestSubmit()
   }
 
   return (
@@ -50,6 +95,7 @@ export function ChatComposer({
             rows={1}
             value={value}
             onChange={(event) => onValueChangeAction(event.target.value)}
+            onKeyDown={handleKeyDown}
             className="field-sizing-content max-h-48 min-h-10"
             placeholder={placeholder}
           />
@@ -76,6 +122,7 @@ export function ChatComposer({
               className="rounded-full"
               type="submit"
               disabled={!canSubmit}
+              aria-label="Send message"
             >
               <ArrowUp />
             </InputGroupButton>

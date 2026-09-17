@@ -1,5 +1,6 @@
 import { sql } from "drizzle-orm";
-import { index, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import { index, jsonb, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import type { UIMessage } from "ai";
 
 export const games = pgTable(
   "games",
@@ -15,6 +16,7 @@ export const games = pgTable(
       .notNull()
       .default(sql`now()`)
       .$onUpdate(() => new Date()),
+    messages: jsonb("messages").$type<UIMessage[]>().notNull().default([]),
   },
   (table) => [
     // Games are always read scoped to an org, usually newest first. The
