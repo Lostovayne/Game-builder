@@ -52,8 +52,8 @@ export function ChatThread({
   }, [initialMessage, router, sendMessage])
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
-      <MessageScrollerProvider>
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+      <MessageScrollerProvider autoScroll defaultScrollPosition="end">
         <MessageScroller className="min-h-0 flex-1">
           <MessageScrollerViewport>
             <MessageScrollerContent className="mx-auto w-full max-w-3xl px-4 py-6">
@@ -62,9 +62,17 @@ export function ChatThread({
                   Describe what to build or tweak, and I’ll take it from there.
                 </p>
               ) : null}
-              {messages.map((message) =>
-                message.role === "assistant" ? (
-                  <MessageScrollerItem key={message.id}>
+              {messages.map((message, index) => {
+                // Stored messages can lack ids (persisted before ids existed),
+                // and React + the scroller both require unique non-empty ids.
+                const itemId = message.id || `message-${index}`
+                const isLast = index === messages.length - 1
+                return message.role === "assistant" ? (
+                  <MessageScrollerItem
+                    key={itemId}
+                    messageId={itemId}
+                    scrollAnchor={isLast}
+                  >
                     <Message align="start">
                       <MessageAvatar className="size-8 self-start rounded-lg bg-transparent">
                         <Image
@@ -89,7 +97,11 @@ export function ChatThread({
                     </Message>
                   </MessageScrollerItem>
                 ) : (
-                  <MessageScrollerItem key={message.id}>
+                  <MessageScrollerItem
+                    key={itemId}
+                    messageId={itemId}
+                    scrollAnchor={isLast}
+                  >
                     <Message align="end">
                       <MessageContent>
                         <Bubble variant="secondary" align="end">
@@ -105,13 +117,13 @@ export function ChatThread({
                     </Message>
                   </MessageScrollerItem>
                 )
-              )}
+              })}
             </MessageScrollerContent>
           </MessageScrollerViewport>
-          <MessageScrollerButton />
+          <MessageScrollerButton direction="end" behavior="smooth" />
         </MessageScroller>
       </MessageScrollerProvider>
-      <div className="mx-auto w-full max-w-3xl px-4 pt-2 pb-4">
+      <div className="mx-auto w-full max-w-3xl shrink-0 px-4 pt-2 pb-4">
         <ChatComposer
           value={input}
           onValueChangeAction={setInput}

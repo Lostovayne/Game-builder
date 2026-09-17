@@ -28,7 +28,7 @@ export default async function GamePage(props: PageProps<"/games/[id]">) {
   const initialMessages = (game.messages ?? []) as UIMessage[]
 
   return (
-    <div className="flex h-full min-h-svh flex-col">
+    <div className="flex h-dvh min-h-0 flex-col overflow-hidden">
       <ChatThread
         gameId={game.id}
         initialMessages={initialMessages}
