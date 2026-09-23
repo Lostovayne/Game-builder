@@ -25,9 +25,8 @@ export function CreateGameComposer() {
           throw new Error("Could not create game.")
         }
         setPrompt("")
-        // Carry the creation prompt to the game view so the thread
-        // receives it as its initial message.
-        router.push(`/games/${game.id}?message=${encodeURIComponent(title)}`)
+        // Prompt is seeded server-side in createGame; redirect clean.
+        router.push(`/games/${game.id}`)
       } catch (err) {
         setError(err instanceof Error ? err.message : "Could not create game.")
       }

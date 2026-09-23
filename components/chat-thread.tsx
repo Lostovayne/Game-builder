@@ -3,7 +3,6 @@
 import { useChat } from "@ai-sdk/react"
 import { DefaultChatTransport, type UIMessage } from "ai"
 import Image from "next/image"
-import { useRouter } from "next/navigation"
 import { useEffect, useRef, useState } from "react"
 
 import { ChatComposer } from "@/components/chat-composer"
@@ -21,17 +20,15 @@ import {
 export function ChatThread({
   gameId,
   initialMessages,
-  initialMessage = null,
 }: {
   gameId: string
   initialMessages?: UIMessage[]
-  initialMessage?: string | null
 }) {
-  const router = useRouter()
   const [input, setInput] = useState("")
-  const consumedInitialRef = useRef(false)
+  const autoFiredForIdRef = useRef<string | null>(null)
+  const retryCountRef = useRef(0)
 
-  const { messages, sendMessage, status, error } = useChat({
+  const { messages, sendMessage, status, error, regenerate } = useChat({
     messages: initialMessages,
     transport: new DefaultChatTransport({ api: "/api/chat", body: { gameId } }),
   })
@@ -41,15 +38,28 @@ export function ChatThread({
     setInput("")
   }
 
-  // Creation prompt carried over from the landing page (?message=...).
-  // Sent once through useChat, then removed from the URL so a refresh
-  // doesn't replay it.
+  // Auto-request assistant reply when the thread is exactly one seeded
+  // user message (creation orphan / interrupted first turn). StrictMode-safe:
+  // first effect run may be aborted by useChat unmount cleanup (chat.stop),
+  // so we use a ref keyed by message id for dedupe plus a bounded retry
+  // counter (max 2 retries) driven by status returning to "ready" while
+  // still a single user message.
   useEffect(() => {
-    if (!initialMessage || consumedInitialRef.current) return
-    consumedInitialRef.current = true
-    void sendMessage({ text: initialMessage })
-    router.replace(window.location.pathname)
-  }, [initialMessage, router, sendMessage])
+    if (messages.length !== 1) return
+    const sole = messages[0]
+    if (!sole || sole.role !== "user") return
+    if (status !== "ready" || error) return
+
+    if (autoFiredForIdRef.current === sole.id) {
+      if (retryCountRef.current >= 2) return
+      retryCountRef.current += 1
+    } else {
+      autoFiredForIdRef.current = sole.id
+      retryCountRef.current = 0
+    }
+
+    void regenerate()
+  }, [messages, status, error, regenerate])
 
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden">

@@ -53,10 +53,11 @@ Auth, data isolation, streaming, and UI are production-shaped from day one: Cler
 
 ```text
 User prompt
-  → createGame() Server Action (lib/games/actions.ts)
-  → INSERT INTO games (org_id, title) — org-scoped
-  → redirect /games/[id]?message=<prompt>
-  → chat-thread loads prompt as initial message
+  → createGame() Server Action (lib/games/actions.ts) seeds first user message
+  → INSERT INTO games (org_id, title, messages) — org-scoped, messages[0] is the prompt
+  → redirect /games/[id] (no ?message=)
+  → ChatThread hydrates from game.messages (initialMessages)
+  → auto-regenerate assistant reply when thread is exactly one user message
   → POST /api/chat streams model response (AI Gateway)
 ```
 
