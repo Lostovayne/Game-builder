@@ -68,6 +68,7 @@ Files listed under Scope only. No other source files. No dependency changes. No 
 ## Progress Log
 - 2026-09-23: Doc created after codegraph exploration of composer/action/page/thread + AI SDK v7 `regenerate`/`generateId` and Next 16 `revalidatePath`. Branch `feat/seed-creation-prompt`.
 - 2026-09-23: T1–T5 implemented by single writer (`ses_f3368c1d0ffe8p16cAMvsp473g`); T6 verified by parent (typecheck + lint pass, diff spot-checked). Ready for work-unit commit.
+- 2026-09-23: Bugfix — agent replied twice on create. Root cause: StrictMode's second effect run while `status` still `"ready"` hit the retry branch for the same message id and fired `regenerate()` again. Fix: only retry after observing a non-ready (in-flight) status for that attempt (`sawInFlightRef`). typecheck + lint pass.
 
 ## Engram Mirror
 - Mirrored to `game-builder` topic `odd/seed-creation-prompt/tasks`.

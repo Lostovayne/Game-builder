@@ -27,6 +27,11 @@ export function ChatThread({
   const [input, setInput] = useState("")
   const autoFiredForIdRef = useRef<string | null>(null)
   const retryCountRef = useRef(0)
+  // True only after we have observed a non-ready status for the current
+  // auto-fire attempt (request actually left "ready"). StrictMode's second
+  // effect run while still "ready" must NOT count as a retry — that was
+  // causing two assistant replies.
+  const sawInFlightRef = useRef(false)
 
   const { messages, sendMessage, status, error, regenerate } = useChat({
     messages: initialMessages,
@@ -39,25 +44,36 @@ export function ChatThread({
   }
 
   // Auto-request assistant reply when the thread is exactly one seeded
-  // user message (creation orphan / interrupted first turn). StrictMode-safe:
-  // first effect run may be aborted by useChat unmount cleanup (chat.stop),
-  // so we use a ref keyed by message id for dedupe plus a bounded retry
-  // counter (max 2 retries) driven by status returning to "ready" while
-  // still a single user message.
+  // user message (creation orphan / interrupted first turn).
+  // Fire once per message id; retry at most twice, and only after status
+  // left "ready" (attempt was in flight) and returned to "ready" still
+  // without an assistant message (StrictMode/chat.stop abort).
   useEffect(() => {
+    if (status === "streaming" || status === "submitted" || status === "error") {
+      if (autoFiredForIdRef.current) {
+        sawInFlightRef.current = true
+      }
+      return
+    }
+    if (status !== "ready" || error) return
     if (messages.length !== 1) return
     const sole = messages[0]
     if (!sole || sole.role !== "user") return
-    if (status !== "ready" || error) return
 
-    if (autoFiredForIdRef.current === sole.id) {
-      if (retryCountRef.current >= 2) return
-      retryCountRef.current += 1
-    } else {
+    if (autoFiredForIdRef.current !== sole.id) {
       autoFiredForIdRef.current = sole.id
       retryCountRef.current = 0
+      sawInFlightRef.current = false
+      void regenerate()
+      return
     }
 
+    // Same message already fired. Only retry if a prior attempt was observed
+    // in flight and came back to ready without producing an assistant reply.
+    if (!sawInFlightRef.current) return
+    if (retryCountRef.current >= 2) return
+    sawInFlightRef.current = false
+    retryCountRef.current += 1
     void regenerate()
   }, [messages, status, error, regenerate])
 
