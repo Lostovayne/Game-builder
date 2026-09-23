@@ -1,7 +1,7 @@
 "use server"
 
 import { auth } from "@clerk/nextjs/server"
-import { generateText } from "ai"
+import { generateId, generateText } from "ai"
 import { revalidatePath } from "next/cache"
 
 import { games } from "@/db/schema"
@@ -30,10 +30,20 @@ export async function createGame(input: { title: string }) {
 
   const [game] = await db
     .insert(games)
-    .values({ orgId, title: title.slice(0, 120) })
+    .values({
+      orgId,
+      title: title.slice(0, 120),
+      messages: [
+        {
+          id: generateId(),
+          role: "user",
+          parts: [{ type: "text", text: prompt }],
+        },
+      ],
+    })
     .returning({ id: games.id, title: games.title })
 
-  revalidatePath("/")
+  revalidatePath("/", "layout")
 
   return game
 }

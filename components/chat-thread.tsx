@@ -3,7 +3,6 @@
 import { useChat } from "@ai-sdk/react"
 import { DefaultChatTransport, type UIMessage } from "ai"
 import Image from "next/image"
-import { useRouter } from "next/navigation"
 import { useEffect, useRef, useState } from "react"
 
 import { ChatComposer } from "@/components/chat-composer"
@@ -21,17 +20,20 @@ import {
 export function ChatThread({
   gameId,
   initialMessages,
-  initialMessage = null,
 }: {
   gameId: string
   initialMessages?: UIMessage[]
-  initialMessage?: string | null
 }) {
-  const router = useRouter()
   const [input, setInput] = useState("")
-  const consumedInitialRef = useRef(false)
+  const autoFiredForIdRef = useRef<string | null>(null)
+  const retryCountRef = useRef(0)
+  // True only after we have observed a non-ready status for the current
+  // auto-fire attempt (request actually left "ready"). StrictMode's second
+  // effect run while still "ready" must NOT count as a retry — that was
+  // causing two assistant replies.
+  const sawInFlightRef = useRef(false)
 
-  const { messages, sendMessage, status, error } = useChat({
+  const { messages, sendMessage, status, error, regenerate } = useChat({
     messages: initialMessages,
     transport: new DefaultChatTransport({ api: "/api/chat", body: { gameId } }),
   })
@@ -41,15 +43,39 @@ export function ChatThread({
     setInput("")
   }
 
-  // Creation prompt carried over from the landing page (?message=...).
-  // Sent once through useChat, then removed from the URL so a refresh
-  // doesn't replay it.
+  // Auto-request assistant reply when the thread is exactly one seeded
+  // user message (creation orphan / interrupted first turn).
+  // Fire once per message id; retry at most twice, and only after status
+  // left "ready" (attempt was in flight) and returned to "ready" still
+  // without an assistant message (StrictMode/chat.stop abort).
   useEffect(() => {
-    if (!initialMessage || consumedInitialRef.current) return
-    consumedInitialRef.current = true
-    void sendMessage({ text: initialMessage })
-    router.replace(window.location.pathname)
-  }, [initialMessage, router, sendMessage])
+    if (status === "streaming" || status === "submitted" || status === "error") {
+      if (autoFiredForIdRef.current) {
+        sawInFlightRef.current = true
+      }
+      return
+    }
+    if (status !== "ready" || error) return
+    if (messages.length !== 1) return
+    const sole = messages[0]
+    if (!sole || sole.role !== "user") return
+
+    if (autoFiredForIdRef.current !== sole.id) {
+      autoFiredForIdRef.current = sole.id
+      retryCountRef.current = 0
+      sawInFlightRef.current = false
+      void regenerate()
+      return
+    }
+
+    // Same message already fired. Only retry if a prior attempt was observed
+    // in flight and came back to ready without producing an assistant reply.
+    if (!sawInFlightRef.current) return
+    if (retryCountRef.current >= 2) return
+    sawInFlightRef.current = false
+    retryCountRef.current += 1
+    void regenerate()
+  }, [messages, status, error, regenerate])
 
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden">

@@ -18,22 +18,11 @@ export default async function GamePage(props: PageProps<"/games/[id]">) {
     notFound()
   }
 
-  // Creation prompt forwarded by the landing page (?message=...).
-  // Plain string => serializable, safe to pass to the client thread.
-  const searchParams = await props.searchParams
-  const rawMessage = searchParams.message
-  const initialMessage =
-    typeof rawMessage === "string" && rawMessage.length > 0 ? rawMessage : null
-
   const initialMessages = (game.messages ?? []) as UIMessage[]
 
   return (
     <div className="flex h-dvh min-h-0 flex-col overflow-hidden">
-      <ChatThread
-        gameId={game.id}
-        initialMessages={initialMessages}
-        initialMessage={initialMessage}
-      />
+      <ChatThread gameId={game.id} initialMessages={initialMessages} />
     </div>
   )
 }
