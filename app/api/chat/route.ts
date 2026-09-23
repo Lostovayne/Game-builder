@@ -41,6 +41,10 @@ export async function POST(req: Request) {
     model: "inclusionai/ling-3.0-flash-fin",
     system: "You are a helpful assistant.",
     messages: await convertToModelMessages(messages),
+    // ling-3.0-flash-fin streams reasoning by default; the chat UI only
+    // renders text parts, so reasoning-only (or reasoning-first) turns
+    // showed an avatar with an empty bubble. Same opt-out as title gen.
+    reasoning: "none",
   })
 
   const stream = toUIMessageStream({
