@@ -93,36 +93,54 @@ export function ChatThread({
                 // and React + the scroller both require unique non-empty ids.
                 const itemId = message.id || `message-${index}`
                 const isLast = index === messages.length - 1
-                return message.role === "assistant" ? (
-                  <MessageScrollerItem
-                    key={itemId}
-                    messageId={itemId}
-                    scrollAnchor={isLast}
-                  >
-                    <Message align="start">
-                      <MessageAvatar className="size-8 self-start rounded-lg bg-transparent">
-                        <Image
-                          src="/logo.svg"
-                          alt="Assistant"
-                          width={32}
-                          height={32}
-                          className="size-8"
-                        />
-                      </MessageAvatar>
-                      <MessageContent>
-                        <Bubble variant="ghost" align="start">
-                          <BubbleContent>
-                            {message.parts.map((part, index) =>
-                              part.type === "text" ? (
-                                <span key={index}>{part.text}</span>
-                              ) : null
-                            )}
-                          </BubbleContent>
-                        </Bubble>
-                      </MessageContent>
-                    </Message>
-                  </MessageScrollerItem>
-                ) : (
+                if (message.role === "assistant") {
+                  const textParts = message.parts.filter(
+                    (part): part is Extract<typeof part, { type: "text" }> =>
+                      part.type === "text"
+                  )
+                  const hasVisibleText = textParts.some((part) => part.text)
+                  const isStreamingThisMessage =
+                    isLast &&
+                    (status === "streaming" || status === "submitted")
+                  return (
+                    <MessageScrollerItem
+                      key={itemId}
+                      messageId={itemId}
+                      scrollAnchor={isLast}
+                    >
+                      <Message align="start">
+                        <MessageAvatar className="size-8 self-start rounded-lg bg-transparent">
+                          <Image
+                            src="/logo.svg"
+                            alt="Assistant"
+                            width={32}
+                            height={32}
+                            className="size-8"
+                          />
+                        </MessageAvatar>
+                        <MessageContent>
+                          <Bubble variant="ghost" align="start">
+                            <BubbleContent>
+                              {hasVisibleText ? (
+                                textParts.map((part, partIndex) => (
+                                  <span key={partIndex}>{part.text}</span>
+                                ))
+                              ) : isStreamingThisMessage ? (
+                                <span
+                                  className="text-muted-foreground"
+                                  aria-live="polite"
+                                >
+                                  Thinking…
+                                </span>
+                              ) : null}
+                            </BubbleContent>
+                          </Bubble>
+                        </MessageContent>
+                      </Message>
+                    </MessageScrollerItem>
+                  )
+                }
+                return (
                   <MessageScrollerItem
                     key={itemId}
                     messageId={itemId}
