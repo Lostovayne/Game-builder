@@ -170,6 +170,17 @@ Open [http://localhost:3000](http://localhost:3000), sign in, select or create a
 | `bun run format`    | Prettier write on `ts/tsx`                         |
 | `bun run db:push`   | `drizzle-kit push` against `DATABASE_URL_UNPOOLED` |
 | `bun run db:studio` | Open Drizzle Studio                                |
+| `bun run test`      | Run unit tests once (`vitest run`)                 |
+| `bun run test:watch` | Watch mode (`vitest`)                              |
+
+### Testing
+
+Vitest runs unit tests in `node` environment with `@/*` alias mapped to the project root.
+
+- `bun run test` — single run (CI)
+- `bun run test:watch` — watch mode for TDD
+
+Colocate tests next to source as `*.test.ts` / `*.test.tsx` (e.g. `lib/games/suggestions.test.ts`) or under `lib/`.
 
 ## Project structure
 
