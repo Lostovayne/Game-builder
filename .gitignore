@@ -47,3 +47,5 @@ next-env.d.ts
 # pi agent local
 .pi/
 .commandcode/
+
+.trigger
