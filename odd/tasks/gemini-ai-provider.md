@@ -55,11 +55,11 @@ Out of scope:
 - [x] T4 — Verify: `typecheck` + `lint`; spot-check no NOVITA leftovers — route: inline (parent spot check) — evidence: `tsc --noEmit` pass, `oxlint` pass, rg NOVITA/getModel → 0 hits in lib/app/README
 - [x] T5 — Work-unit commit on `feat/gemini-provider` — route: inline — evidence: `bcf1676` feat(ai): switch provider to Gemini with dual env-driven models
 - [x] T7 — Merge to main + push origin — user-authorized delivery — evidence: fast-forward `af64471..bcf1676`, `main -> main` pushed
-- [ ] T6 — User provides real `GEMINI_API_KEY` in `.env.local`; smoke-check title + chat if key present
+- [x] T6 — User provides real `GEMINI_API_KEY` in `.env.local`; smoke-check title + chat if key present — evidence: user confirmed API key works for both models (2026-09-24)
 
 ## Progress
 
-- T1–T5, T7 done. Merged and pushed. T6 still waits on user's real API key.
+- All tasks (T1–T7) complete. Merged, pushed, branches deleted, API key verified by user.
 
 ## Verification evidence
 
