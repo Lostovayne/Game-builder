@@ -14,7 +14,7 @@ import { env } from "@/lib/env"
 // tuned for its task without coupling them together:
 // - Title generation (lib/games/actions.ts) → getTitleModel() → GEMINI_TITLE_MODEL
 //   (default intent: gemini-3.5-flash-lite — cheapest/fastest lite text model)
-// - Chat responses (app/api/chat/route.ts) → getChatModel() → GEMINI_CHAT_MODEL
+// - Chat responses (trigger/chat.ts) → getChatModel() → GEMINI_CHAT_MODEL
 //   (default intent: gemini-3.8-flash — newest flash, best latency/quality trade-off)
 //
 // NOTE: server-only. GEMINI_API_KEY is not a NEXT_PUBLIC_ var.
@@ -32,7 +32,7 @@ export function getTitleModel() {
 }
 
 /**
- * Model for streaming chat responses (app/api/chat/route.ts).
+ * Model for streaming chat responses (trigger/chat.ts).
  * Reads GEMINI_CHAT_MODEL from env (e.g. gemini-3.8-flash).
  */
 export function getChatModel() {

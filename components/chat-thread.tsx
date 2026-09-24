@@ -1,7 +1,8 @@
 "use client"
 
 import { useChat } from "@ai-sdk/react"
-import { DefaultChatTransport, type UIMessage } from "ai"
+import { useTriggerChatTransport } from "@trigger.dev/sdk/chat/react"
+import type { UIMessage } from "ai"
 import Image from "next/image"
 import { useEffect, useRef, useState } from "react"
 
@@ -16,13 +17,17 @@ import {
   MessageScrollerProvider,
   MessageScrollerViewport,
 } from "@/components/ui/message-scroller"
+import { mintGameAccessToken, startGameSession } from "@/lib/chat/actions"
+import type { gameChat } from "@/trigger/chat"
 
 export function ChatThread({
   gameId,
   initialMessages,
+  initialSessions,
 }: {
   gameId: string
   initialMessages?: UIMessage[]
+  initialSessions?: Record<string, { publicAccessToken: string; lastEventId: string }>
 }) {
   const [input, setInput] = useState("")
   const autoFiredForIdRef = useRef<string | null>(null)
@@ -33,9 +38,19 @@ export function ChatThread({
   // causing two assistant replies.
   const sawInFlightRef = useRef(false)
 
+  const transport = useTriggerChatTransport<typeof gameChat>({
+    task: "game-chat",
+    accessToken: ({ chatId }) => mintGameAccessToken(chatId),
+    startSession: ({ chatId, clientData }) =>
+      startGameSession({ chatId, clientData }),
+    sessions: initialSessions,
+  })
+
   const { messages, sendMessage, status, error, regenerate } = useChat({
+    id: gameId,
     messages: initialMessages,
-    transport: new DefaultChatTransport({ api: "/api/chat", body: { gameId } }),
+    transport,
+    resume: !!initialSessions,
   })
 
   function handleSend(value: string) {

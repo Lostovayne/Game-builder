@@ -27,6 +27,7 @@ export const games = pgTable(
       .$type<UIMessage[]>()
       .notNull()
       .default(sql`'[]'::jsonb`),
+    lastEventId: text("last_event_id"),
   },
   (table) => [
     // Games are always read scoped to an org, usually newest first. The
