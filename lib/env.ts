@@ -45,22 +45,29 @@ const serverEnvSchema = z.object({
       "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY has an unexpected format — it must start with pk_test_ or pk_live_"
     ),
 
-  // Novita — OpenAI-compatible AI provider (https://novita.ai/docs/guides/llm-api).
-  // Both the chat responder and the sidebar title generator share the model
-  // built by lib/ai.ts from these two values.
-  NOVITA_API_KEY: z
+  // Gemini — Google AI Studio (https://aistudio.google.com/apikey).
+  // Two separate models: one for title generation, one for chat responses.
+  // Both are read by lib/ai.ts via getTitleModel() / getChatModel().
+  GEMINI_API_KEY: z
     .string({
       error:
-        "NOVITA_API_KEY is missing — copy it from the Novita dashboard into .env.local (dev) or to the service Variables (Railway)",
+        "GEMINI_API_KEY is missing — create one at https://aistudio.google.com/apikey and add it to .env.local (dev) or to the service Variables (Railway)",
     })
-    .min(1, "NOVITA_API_KEY is empty — it must be a Novita API key"),
+    .min(1, "GEMINI_API_KEY is empty — it must be a Gemini API key from https://aistudio.google.com/apikey"),
 
-  NOVITA_AI_MODEL: z
+  GEMINI_TITLE_MODEL: z
     .string({
       error:
-        "NOVITA_AI_MODEL is missing — set the model id (e.g. deepseek/deepseek-v3.1) in .env.local (dev) or the service Variables (Railway)",
+        "GEMINI_TITLE_MODEL is missing — set the model id (e.g. gemini-3.5-flash-lite) in .env.local (dev) or the service Variables (Railway)",
     })
-    .min(1, "NOVITA_AI_MODEL is empty — it must be a Novita model id"),
+    .min(1, "GEMINI_TITLE_MODEL is empty — it must be a Gemini model id (e.g. gemini-3.5-flash-lite)"),
+
+  GEMINI_CHAT_MODEL: z
+    .string({
+      error:
+        "GEMINI_CHAT_MODEL is missing — set the model id (e.g. gemini-3.8-flash) in .env.local (dev) or the service Variables (Railway)",
+    })
+    .min(1, "GEMINI_CHAT_MODEL is empty — it must be a Gemini model id (e.g. gemini-3.8-flash)"),
 
   // Custom auth routes — optional, Clerk falls back to its defaults when unset.
   NEXT_PUBLIC_CLERK_SIGN_IN_URL: z.string().optional(),

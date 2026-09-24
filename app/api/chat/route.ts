@@ -7,7 +7,7 @@ import {
   type UIMessage,
 } from "ai"
 
-import { getModel } from "@/lib/ai"
+import { getChatModel } from "@/lib/ai"
 import { getGame, saveGameMessages } from "@/lib/games/queries"
 
 // Allow streaming responses up to 30 seconds
@@ -37,14 +37,15 @@ export async function POST(req: Request) {
   }
 
   const result = streamText({
-    // Novita (OpenAI-compatible) — model id comes from NOVITA_AI_MODEL, shared
-    // with the title generator via lib/ai.ts.
-    model: getModel(),
+    // Gemini via @ai-sdk/google — model id comes from GEMINI_CHAT_MODEL.
+    // getChatModel() is the chat-optimized model (e.g. gemini-3.8-flash).
+    model: getChatModel(),
     system: "You are a helpful assistant.",
     messages: await convertToModelMessages(messages),
-    // ling-3.0-flash-fin streams reasoning by default; the chat UI only
-    // renders text parts, so reasoning-only (or reasoning-first) turns
-    // showed an avatar with an empty bubble. Same opt-out as title gen.
+    // For Gemini 3, reasoning:"none" maps to thinkingLevel: minimal/low
+    // (thinking cannot be fully disabled). For Gemini 2.5 it maps to
+    // thinkingBudget: 0. Keeps latency minimal; see google-language-model.ts
+    // resolveThinkingConfig(). Same setting as title generation.
     reasoning: "none",
   })
 

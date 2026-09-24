@@ -99,7 +99,7 @@ games {
 - Bun (or Node 20+ with npm/pnpm)
 - A Neon Postgres database
 - A Clerk application with Organizations enabled
-- A Novita API key (OpenAI-compatible, used for `/api/chat` streaming and title generation)
+- A Gemini API key from Google AI Studio (used for `/api/chat` streaming and title generation via `@ai-sdk/google`)
 
 ### 1. Install
 
@@ -127,10 +127,11 @@ NEXT_PUBLIC_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL=/
 DATABASE_URL=postgresql://...        # pooled URL (app runtime)
 DATABASE_URL_UNPOOLED=postgresql://... # direct URL (drizzle-kit push)
 
-# Novita — OpenAI-compatible AI provider (https://novita.ai/docs/guides/llm-api)
-# Used by /api/chat and the sidebar title generator (shared model via lib/ai.ts)
-NOVITA_API_KEY=nvapi-...
-NOVITA_AI_MODEL=deepseek/deepseek-v3.1   # any model id from the Novita model library
+# Gemini — https://aistudio.google.com/apikey
+# Two separate models via @ai-sdk/google (lib/ai.ts: getTitleModel / getChatModel)
+GEMINI_API_KEY=AIza...                  # from Google AI Studio
+GEMINI_TITLE_MODEL=gemini-3.5-flash-lite # cheapest/fastest — title generation
+GEMINI_CHAT_MODEL=gemini-3.8-flash       # newest flash — chat responses
 ```
 
 > `lib/env.ts` validates these eagerly at import time. A missing or malformed key throws a named error instead of failing silently later.
