@@ -33,11 +33,12 @@ export async function persistGameTurn(
     .update(games)
     .set({
       messages: uiMessages,
-      lastEventId: lastEventId ?? null,
+      // Only write the cursor when this turn produced one. The cursor is
+      // session-keyed and stays valid across runs (incl. aborted ones), so
+      // nulling it here would force the next resume to start at seq 0 and
+      // hit the previous turn's stale completion marker.
+      ...(lastEventId ? { lastEventId } : {}),
       updatedAt: new Date(),
     })
     .where(eq(games.id, gameId))
 }
-
-// Re-export for worker tests/mocks if needed
-export { db }
