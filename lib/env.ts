@@ -45,6 +45,23 @@ const serverEnvSchema = z.object({
       "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY has an unexpected format — it must start with pk_test_ or pk_live_"
     ),
 
+  // Novita — OpenAI-compatible AI provider (https://novita.ai/docs/guides/llm-api).
+  // Both the chat responder and the sidebar title generator share the model
+  // built by lib/ai.ts from these two values.
+  NOVITA_API_KEY: z
+    .string({
+      error:
+        "NOVITA_API_KEY is missing — copy it from the Novita dashboard into .env.local (dev) or to the service Variables (Railway)",
+    })
+    .min(1, "NOVITA_API_KEY is empty — it must be a Novita API key"),
+
+  NOVITA_AI_MODEL: z
+    .string({
+      error:
+        "NOVITA_AI_MODEL is missing — set the model id (e.g. deepseek/deepseek-v3.1) in .env.local (dev) or the service Variables (Railway)",
+    })
+    .min(1, "NOVITA_AI_MODEL is empty — it must be a Novita model id"),
+
   // Custom auth routes — optional, Clerk falls back to its defaults when unset.
   NEXT_PUBLIC_CLERK_SIGN_IN_URL: z.string().optional(),
   NEXT_PUBLIC_CLERK_SIGN_UP_URL: z.string().optional(),

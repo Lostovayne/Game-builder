@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^4.0.62",
+    "@ai-sdk/openai-compatible": "^3.0.55",
     "@ai-sdk/react": "^4.0.116",
     "@base-ui/react": "^1.8.0",
     "@clerk/nextjs": "^7.9.5",

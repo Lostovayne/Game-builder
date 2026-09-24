@@ -99,7 +99,7 @@ games {
 - Bun (or Node 20+ with npm/pnpm)
 - A Neon Postgres database
 - A Clerk application with Organizations enabled
-- An AI Gateway API key (for `/api/chat` streaming)
+- A Novita API key (OpenAI-compatible, used for `/api/chat` streaming and title generation)
 
 ### 1. Install
 
@@ -127,8 +127,10 @@ NEXT_PUBLIC_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL=/
 DATABASE_URL=postgresql://...        # pooled URL (app runtime)
 DATABASE_URL_UNPOOLED=postgresql://... # direct URL (drizzle-kit push)
 
-# AI Gateway (used by app/api/chat/route.ts)
-AI_GATEWAY_API_KEY=...
+# Novita — OpenAI-compatible AI provider (https://novita.ai/docs/guides/llm-api)
+# Used by /api/chat and the sidebar title generator (shared model via lib/ai.ts)
+NOVITA_API_KEY=nvapi-...
+NOVITA_AI_MODEL=deepseek/deepseek-v3.1   # any model id from the Novita model library
 ```
 
 > `lib/env.ts` validates these eagerly at import time. A missing or malformed key throws a named error instead of failing silently later.

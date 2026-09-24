@@ -7,6 +7,7 @@ import {
   type UIMessage,
 } from "ai"
 
+import { getModel } from "@/lib/ai"
 import { getGame, saveGameMessages } from "@/lib/games/queries"
 
 // Allow streaming responses up to 30 seconds
@@ -36,9 +37,9 @@ export async function POST(req: Request) {
   }
 
   const result = streamText({
-    // AI Gateway es el provider global por defecto: el string "provider/model"
-    // se resuelve contra el gateway y autentica con AI_GATEWAY_API_KEY.
-    model: "inclusionai/ling-3.0-flash-fin",
+    // Novita (OpenAI-compatible) — model id comes from NOVITA_AI_MODEL, shared
+    // with the title generator via lib/ai.ts.
+    model: getModel(),
     system: "You are a helpful assistant.",
     messages: await convertToModelMessages(messages),
     // ling-3.0-flash-fin streams reasoning by default; the chat UI only

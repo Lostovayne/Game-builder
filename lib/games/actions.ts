@@ -4,6 +4,7 @@ import { auth } from "@clerk/nextjs/server"
 import { generateId, generateText } from "ai"
 import { revalidatePath } from "next/cache"
 
+import { getModel } from "@/lib/ai"
 import { games } from "@/db/schema"
 import { db } from "@/lib/db"
 
@@ -20,7 +21,8 @@ export async function createGame(input: { title: string }) {
   }
 
   const { text: generated } = await generateText({
-    model: "inclusionai/ling-3.0-flash-fin",
+    // Same provider/model source as the chat responder (lib/ai.ts).
+    model: getModel(),
     prompt: `Generate a short, catchy video game title (at most 6 words) for a game described by this request: "${prompt}". Answer with the title only, without quotes or extra text.`,
     maxOutputTokens: 60,
     reasoning: "none",
