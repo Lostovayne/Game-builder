@@ -53,12 +53,13 @@ Out of scope:
 - [x] T2 — Create branch `feat/gemini-provider` + this feature doc — evidence: branch created; doc written
 - [x] T3 — Delegate writer: install `@ai-sdk/google`, rewrite `lib/ai.ts` + `lib/env.ts`, update both call sites, README, `.env.local` placeholders — route: delegated — evidence: writer success; files changed as listed below
 - [x] T4 — Verify: `typecheck` + `lint`; spot-check no NOVITA leftovers — route: inline (parent spot check) — evidence: `tsc --noEmit` pass, `oxlint` pass, rg NOVITA/getModel → 0 hits in lib/app/README
-- [x] T5 — Work-unit commit on `feat/gemini-provider` — route: inline — evidence: `228b042` feat(ai): switch provider to Gemini with dual env-driven models
+- [x] T5 — Work-unit commit on `feat/gemini-provider` — route: inline — evidence: `bcf1676` feat(ai): switch provider to Gemini with dual env-driven models
+- [x] T7 — Merge to main + push origin — user-authorized delivery — evidence: fast-forward `af64471..bcf1676`, `main -> main` pushed
 - [ ] T6 — User provides real `GEMINI_API_KEY` in `.env.local`; smoke-check title + chat if key present
 
 ## Progress
 
-- T1–T5 done. Next: T6 waits on user's real API key in `.env.local`.
+- T1–T5, T7 done. Merged and pushed. T6 still waits on user's real API key.
 
 ## Verification evidence
 
