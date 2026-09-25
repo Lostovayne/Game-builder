@@ -60,8 +60,20 @@ export const gameTranscriptStorage: TranscriptStorage = {
   async save({ chatId }, changeset) {
     const existing = await readGameTranscriptRow(chatId)
     const cursors = changeset.cursors
+    const incoming = changeset.transcript.entries.map((entry) => entry.message)
+    // This app has no delete/undo features, so an empty transcript
+    // overwriting a non-empty row is never legitimate — it is always a
+    // failed/empty turn that must not clobber history. Preserve the existing
+    // messages (still persisting transcriptState + cursors) until the next
+    // user send makes the transcript non-empty again.
+    const messages =
+      incoming.length === 0 &&
+      existing &&
+      existing.messages.length > 0
+        ? existing.messages
+        : incoming
     await writeGameTranscriptRow(chatId, {
-      messages: changeset.transcript.entries.map((entry) => entry.message),
+      messages,
       transcriptState: changeset.transcript.state,
       lastOutEventId:
         cursors?.lastOutEventId ?? existing?.lastOutEventId ?? null,
