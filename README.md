@@ -104,8 +104,7 @@ games {
 ### 1. Install
 
 ```bash
-bun install
-# or: npm install
+npm install
 ```
 
 ### 2. Configure environment
@@ -141,19 +140,19 @@ GEMINI_CHAT_MODEL=gemini-3.8-flash       # newest flash — chat responses
 This project uses Drizzle `push` in development — no migration files:
 
 ```bash
-bun run db:push
+npm run db:push
 ```
 
 Optional visual explorer:
 
 ```bash
-bun run db:studio
+npm run db:studio
 ```
 
 ### 4. Run
 
 ```bash
-bun run dev
+npm run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000), sign in, select or create an organization, and type what you want to build.
@@ -162,23 +161,23 @@ Open [http://localhost:3000](http://localhost:3000), sign in, select or create a
 
 | Command             | What it does                                       |
 | ------------------- | -------------------------------------------------- |
-| `bun run dev`       | Start Next.js dev server                           |
-| `bun run build`     | Production build                                   |
-| `bun run start`     | Serve production build                             |
-| `bun run lint`      | ESLint                                             |
-| `bun run typecheck` | `tsc --noEmit`                                     |
-| `bun run format`    | Prettier write on `ts/tsx`                         |
-| `bun run db:push`   | `drizzle-kit push` against `DATABASE_URL_UNPOOLED` |
-| `bun run db:studio` | Open Drizzle Studio                                |
-| `bun run test`      | Run unit tests once (`vitest run`)                 |
-| `bun run test:watch` | Watch mode (`vitest`)                              |
+| `npm run dev`       | Start Next.js dev server                           |
+| `npm run build`     | Production build                                   |
+| `npm run start`     | Serve production build                             |
+| `npm run lint`      | ESLint                                             |
+| `npm run typecheck` | `tsc --noEmit`                                     |
+| `npm run format`    | Prettier write on `ts/tsx`                         |
+| `npm run db:push`   | `drizzle-kit push` against `DATABASE_URL_UNPOOLED` |
+| `npm run db:studio` | Open Drizzle Studio                                |
+| `npm run test`      | Run unit tests once (`vitest run`)                 |
+| `npm run test:watch` | Watch mode (`vitest`)                              |
 
 ### Testing
 
 Vitest runs unit tests in `node` environment with `@/*` alias mapped to the project root.
 
-- `bun run test` — single run (CI)
-- `bun run test:watch` — watch mode for TDD
+- `npm run test` — single run (CI)
+- `npm run test:watch` — watch mode for TDD
 
 Colocate tests next to source as `*.test.ts` / `*.test.tsx` (e.g. `lib/games/suggestions.test.ts`) or under `lib/`.
 
@@ -225,7 +224,7 @@ proxy.ts                    # auth middleware
 Issues and PRs are welcome. Keep changes small and scoped:
 
 1. Fork and branch from `main`.
-2. Run `bun run typecheck` and `bun run lint` before pushing.
+2. Run `npm run typecheck` and `npm run lint` before pushing.
 3. Describe the problem, the fix, and how you verified it.
 
 ## License
