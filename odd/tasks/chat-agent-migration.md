@@ -92,6 +92,12 @@ Route: **delegated direct** (one writer). Triggers: mapping (4+ files) + write r
 - `app/(app)/games/[id]/page.tsx` now declares `params: Promise<{ id: string }>` instead of `PageProps<"/games/[id]">`. Deleting `app/api/chat/route.ts` left a stale `.next/types` reference (`Cannot find module '../../app/api/chat/route.js'`); the generated `PageProps` global only exists once `.next/types` regenerates, so an explicit, type-safe form removes the dependency on build cache. Behavior unchanged; this was the app's only `PageProps` usage.
 - `persistGameTurn` was tightened after review: it writes `lastEventId` only when the turn produced one, instead of `lastEventId ?? null`. Nulling a valid session-keyed cursor would force the next resume to start at `seq 0` and hit the previous turn's stale completion marker.
 
+## Review outcome (RDD)
+- Mode: **on** (global). Assessed with `gentle-ai review assess --agent opencode --base-ref 1cda6b1 --committed-only`.
+- First attempt returned `unassessable` (`changed_paths: 0`) because untracked files needed an explicit declaration; re-ran with `--untracked-scope=exclude --expected-untracked-inventory=sha256:f4257f210fe51fc39780a77f3aaa6d90f3f6703505dd2ab6dfcf7cee3eddd68c` (the `eligible_untracked_inventory` issued by selectorless STATUS). The untracked files are the installed `.agents/skills/trigger-*` dirs — outside this candidate.
+- Result: `risk: medium`, `changed_paths: 11`, `changed_lines: 365`, `review_due: false`, `review_due_reason: under_budget` → **under budget**; stays pending in the slice until a later commit reaches ~400 authored lines. No review transaction opened.
+- Verification of record: the writer's command results in the table above, plus parent spot checks (`bun run typecheck` → exit 0, `bun run lint` → only the pre-existing `trigger/example.ts` error).
+
 ## Commits
 - `42f1232` `feat(chat): migrate route handler to Trigger.dev chat.agent`
 - `9d886b8` `fix(chat): preserve lastEventId cursor when a turn produces none`
