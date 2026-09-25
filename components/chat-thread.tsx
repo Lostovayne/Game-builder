@@ -23,24 +23,26 @@ import {
   startGameSession,
 } from "@/lib/chat/actions"
 import type { gameChat } from "@/trigger/chat"
-import {
-  RECOVERY_DELAYS_MS,
-  shouldRecoverTurn,
-} from "@/lib/chat/recovery"
+import { RECOVERY_DELAYS_MS, shouldRecoverTurn } from "@/lib/chat/recovery"
 
-function useElapsedSeconds(active: boolean): number {
-  // Mount-fresh timer: the pending bubble only mounts while active, so
-  // capturing `startedAt` in the state initializer avoids any synchronous
-  // setState inside the effect (interval updates are async and allowed).
-  const [startedAt] = useState(() => Date.now())
-  const [now, setNow] = useState(startedAt)
+function useProgressiveStatus(active: boolean): string {
+  const [step, setStep] = useState(0)
   useEffect(() => {
-    if (!active) return
-    const timer = window.setInterval(() => setNow(Date.now()), 500)
-    return () => window.clearInterval(timer)
+    if (!active) {
+      setStep(0)
+      return
+    }
+    const t1 = window.setTimeout(() => setStep(1), 2000)
+    const t2 = window.setTimeout(() => setStep(2), 6000)
+    return () => {
+      window.clearTimeout(t1)
+      window.clearTimeout(t2)
+    }
   }, [active])
-  if (!active) return 0
-  return Math.max(0, Math.floor((now - startedAt) / 1000))
+
+  if (step === 0) return "Estableciendo la conexión…"
+  if (step === 1) return "Esperando al modelo…"
+  return "Conectado a Kimi K3…"
 }
 
 const sleep = (ms: number) =>
@@ -67,7 +69,10 @@ export function ChatThread({
 }: {
   gameId: string
   initialMessages?: UIMessage[]
-  initialSessions?: Record<string, { publicAccessToken: string; lastEventId: string }>
+  initialSessions?: Record<
+    string,
+    { publicAccessToken: string; lastEventId: string }
+  >
 }) {
   const [input, setInput] = useState("")
   const autoFiredForIdRef = useRef<string | null>(null)
@@ -104,8 +109,7 @@ export function ChatThread({
           // (transcript saved) but this client has no assistant reply yet.
           // Happens when `.out` closes past a stale cursor or drops chunks.
           {
-            const last =
-              messagesRef.current[messagesRef.current.length - 1]
+            const last = messagesRef.current[messagesRef.current.length - 1]
             if (last && last.role === "user" && last.id) {
               recoverRef.current(last.id)
             }
@@ -202,11 +206,7 @@ export function ChatThread({
       // Window exhausted and still nothing anywhere → manual retry.
       const cur = messagesRef.current
       const curLast = cur[cur.length - 1]
-      if (
-        curLast &&
-        curLast.id === userId &&
-        !hasAssistantReply(cur, userId)
-      ) {
+      if (curLast && curLast.id === userId && !hasAssistantReply(cur, userId)) {
         setFailedFor(userId)
       }
     } finally {
@@ -297,8 +297,9 @@ export function ChatThread({
 
     if (autoFiredForIdRef.current !== sole.id) {
       const text = sole.parts
-        .filter((part): part is Extract<typeof part, { type: "text" }> =>
-          part.type === "text"
+        .filter(
+          (part): part is Extract<typeof part, { type: "text" }> =>
+            part.type === "text"
         )
         .map((part) => part.text)
         .join("")
@@ -330,16 +331,15 @@ export function ChatThread({
   }, [messages, status, error, regenerate, sendMessage])
 
   const isBusy = status === "streaming" || status === "submitted"
+  const progressiveStatus = useProgressiveStatus(isBusy || recovering)
+  const isSubmitting = status === "submitted"
   // Gap before the first assistant chunk: `useChat` has no assistant message
   // yet while `submitted`, so without this the view looks dead/empty.
   // `recovering` keeps the bubble up while we pull the persisted reply
   // after an empty stream close — instead of melting into nothing.
   const lastMessage = messages[messages.length - 1]
-  const awaitingReply =
-    !lastMessage || lastMessage.role === "user"
-  const showPendingBubble =
-    (isBusy || recovering) && awaitingReply
-  const elapsed = useElapsedSeconds(isBusy || recovering)
+  const awaitingReply = !lastMessage || lastMessage.role === "user"
+  const showPendingBubble = (isBusy || recovering) && awaitingReply
   // Definitive failure for THIS user message: recovery found nothing to
   // pull (or fetch failed), or the turn errored. Offer retry, not reload.
   const lastUserId =
@@ -348,7 +348,8 @@ export function ChatThread({
     !isBusy &&
     !recovering &&
     lastUserId !== null &&
-    (failedFor === lastUserId || (error != null && lastMessage?.role === "user"))
+    (failedFor === lastUserId ||
+      (error != null && lastMessage?.role === "user"))
 
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
@@ -375,7 +376,9 @@ export function ChatThread({
                   // (sendReasoning: true + reasoning != "none"). Rendered
                   // collapsed/live so waiting never looks dead.
                   const reasoningParts = message.parts.filter(
-                    (part): part is Extract<typeof part, { type: "reasoning" }> =>
+                    (
+                      part
+                    ): part is Extract<typeof part, { type: "reasoning" }> =>
                       part.type === "reasoning"
                   )
                   const hasVisibleText = textParts.some((part) => part.text)
@@ -409,7 +412,7 @@ export function ChatThread({
                                 >
                                   <summary className="cursor-pointer select-none">
                                     {streamingReasoning
-                                      ? `Thinking…${elapsed > 1 ? ` (${elapsed}s)` : ""}`
+                                      ? "Pensando…"
                                       : "Thought process"}
                                   </summary>
                                   {reasoningParts.map((part, partIndex) => (
@@ -428,12 +431,12 @@ export function ChatThread({
                                 ))
                               ) : isStreamingThisMessage ? (
                                 <span
-                                  className="text-muted-foreground animate-pulse"
+                                  className="animate-pulse text-muted-foreground"
                                   aria-live="polite"
                                 >
                                   {reasoningParts.length > 0
-                                    ? "Writing answer…"
-                                    : `Thinking…${elapsed > 1 ? ` (${elapsed}s)` : ""}`}
+                                    ? "Escribiendo respuesta…"
+                                    : "Pensando…"}
                                 </span>
                               ) : null}
                             </BubbleContent>
@@ -485,14 +488,14 @@ export function ChatThread({
                       <Bubble variant="ghost" align="start">
                         <BubbleContent>
                           <span
-                            className="text-muted-foreground animate-pulse"
+                            className="animate-pulse text-muted-foreground"
                             aria-live="polite"
                           >
                             {recovering
-                              ? `Syncing response…${elapsed > 1 ? ` (${elapsed}s)` : ""}`
-                              : status === "submitted"
-                                ? `Contacting model…${elapsed > 1 ? ` (${elapsed}s)` : ""}`
-                                : `Thinking…${elapsed > 1 ? ` (${elapsed}s)` : ""}`}
+                              ? "Sincronizando respuesta…"
+                              : isSubmitting
+                                ? progressiveStatus
+                                : "Pensando…"}
                           </span>
                         </BubbleContent>
                       </Bubble>
