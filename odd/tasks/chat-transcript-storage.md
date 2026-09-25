@@ -56,6 +56,12 @@ Explicitly NOT in scope: `page.tsx`, `chat-thread.tsx`, actions, queries, `ai.ts
 ## Authorized Scope
 Exactly the files listed in **Scope**. Stay on branch `feat/chat-agent-migration` (same lineage, unpushed).
 
+## Review outcome (RDD)
+- Mode: **on** (global). Slice `1cda6b1..HEAD`: `risk: medium`, 14 paths, 594 lines, `review_due: true` (`slice_budget_reached`).
+- Followed the returned transition verbatim: preflight STATUS → `collect` (`intended_untracked_selection_required`, satisfied with `untracked-scope=exclude` — the 5 untracked skill files are not part of the candidate) → `execute fresh_target_ready` → exact START → `consent_required`.
+- Human decision via lossless native prompt: **declined this candidate** (`declined` / `declined_this_candidate`, target identity verified, re-entered STATUS after). No review record created; future reviews stay enabled.
+- Verification of record: writer-equivalent inline runs in the table above + parent spot checks (`typecheck` real exit 0, `lint` only pre-existing `trigger/example.ts`).
+
 ## Commits (branch `feat/chat-agent-migration`, not pushed)
 - `77806b5` `feat(chat): replace hydrateMessages with transcript storage` — schema, row layer, storage, suite, agent swap
 - this doc follows as `docs(odds)`
