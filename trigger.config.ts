@@ -19,4 +19,5 @@ export default defineConfig({
     },
   },
   dirs: ["trigger"],
+  build: { conditions: ["react-server"] },
 });

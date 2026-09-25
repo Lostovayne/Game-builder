@@ -40,6 +40,9 @@ next-env.d.ts
 # Skills
 .atl/
 
+# browser automation artifacts (Playwright MCP screenshots/logs)
+.playwright-mcp/
+
 # codegraph — índice local regenerable
 .codegraph/
 .neon
