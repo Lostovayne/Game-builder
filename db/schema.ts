@@ -28,6 +28,13 @@ export const games = pgTable(
       .notNull()
       .default(sql`'[]'::jsonb`),
     lastEventId: text("last_event_id"),
+    // Opaque runtime record (compaction summary, injected context). Written
+    // by the transcript storage's `save`, read back by its `load`.
+    transcriptState: jsonb("transcript_state").$type<unknown>(),
+    // Resume cursor for the input stream. `last_event_id` carries the output
+    // cursor the page uses to resubscribe. Both are runtime-computed and
+    // stored opaquely — never interpreted here.
+    lastInEventId: text("last_in_event_id"),
   },
   (table) => [
     // Games are always read scoped to an org, usually newest first. The
