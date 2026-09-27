@@ -28,6 +28,9 @@ export const games = pgTable(
       .notNull()
       .default(sql`'[]'::jsonb`),
     lastEventId: text("last_event_id"),
+    // Daytona sandbox provisioned on the game's first chat message. Null
+    // until then; set once and reused for the game's lifetime.
+    sandboxId: text("sandbox_id"),
     // Opaque runtime record (compaction summary, injected context). Written
     // by the transcript storage's `save`, read back by its `load`.
     transcriptState: jsonb("transcript_state").$type<unknown>(),
