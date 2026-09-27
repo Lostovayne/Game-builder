@@ -1,231 +1,217 @@
 # Game-builder
 
-> Build playable 3D games from plain English. AI-powered game builder with streaming chat, multi-tenant orgs, and instant Neon Postgres persistence.
+<p align="center">
+  <img
+    src="public/capture.png"
+    alt="Game-builder workspace showing the chat-based game creation experience"
+    width="100%"
+    style="max-width: 100%; height: auto; border-radius: 16px; border: 1px solid #30363d;"
+  />
+</p>
 
-[![Next.js](https://img.shields.io/badge/Next.js-16-black?logo=next.js)](https://nextjs.org/)
-[![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)](https://react.dev/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-6-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
-[![Tailwind CSS](https://img.shields.io/badge/Tailwind-4-06B6D4?logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
-[![Clerk](https://img.shields.io/badge/Auth-Clerk-6C47FF)](https://clerk.com/)
-[![Neon Postgres](https://img.shields.io/badge/Postgres-Neon-00E599)](https://neon.com/)
-[![Drizzle ORM](https://img.shields.io/badge/ORM-Drizzle-C5F74F)](https://orm.drizzle.team/)
+<p align="center">
+  Turn a game idea into a creative, AI-assisted building session — just describe what you want to make.
+</p>
 
-## What is this?
+<p align="center">
+  <img src="https://img.shields.io/badge/Next.js-16-black?logo=next.js" alt="Next.js 16" />
+  <img src="https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black" alt="React 19" />
+  <img src="https://img.shields.io/badge/TypeScript-6-3178C6?logo=typescript&logoColor=white" alt="TypeScript 6" />
+  <img src="https://img.shields.io/badge/Tailwind_CSS-4-06B6D4?logo=tailwindcss&logoColor=white" alt="Tailwind CSS 4" />
+  <img src="https://img.shields.io/badge/Auth-Clerk-6C47FF" alt="Clerk authentication" />
+  <img src="https://img.shields.io/badge/Database-Neon-00E599" alt="Neon Postgres" />
+</p>
 
-**Game-builder** is a web app where you describe the game you want — _"a sunny kingdom platformer"_, _"a fight-first shooter"_, _"a voxel survival"_ — and it scaffolds a playable game session around that prompt.
+Game-builder is a web workspace for shaping game concepts through conversation. Start with a prompt — a sunny kingdom platformer, a fight-first shooter, or a voxel survival world — and keep developing the idea in a persistent AI chat.
 
-The current flow is simple and fast:
+> **Product status:** The current experience is an AI-assisted game-building conversation. An in-app playable preview is still on the roadmap.
 
-1. You land on the home composer and type what you want to build.
-2. A Server Action creates a `game` row scoped to your Clerk organization.
-3. You are routed to `/games/[id]` with your prompt attached as the first message.
-4. A streaming AI thread (`/api/chat`) continues the conversation and drives the build.
+## What you can do
 
-Auth, data isolation, streaming, and UI are production-shaped from day one: Clerk Organizations for multi-tenancy, Neon Postgres + Drizzle for persistence, Vercel AI SDK for streaming chat, and shadcn/ui + Tailwind for the interface.
-
-## Features
-
-- **Prompt-to-game composer** — one input creates a game and opens its session (`components/create-game-composer.tsx`).
-- **Streaming AI thread** — chat UI wired to `POST /api/chat` with `streamText` + `toUIMessageStream` (30s max duration).
-- **Multi-tenant by default** — every game belongs to a Clerk `orgId`; creation without an org is rejected.
-- **Org-scoped queries** — games are read newest-first per org, backed by a composite index on `(org_id, created_at)`.
-- **Curated suggestions** — one-click starters (voxel survival, samurai duel, platformer, shooter…) from `lib/games/suggestions.ts`.
-- **Modern UI kit** — shadcn/ui, Base UI, Tailwind CSS 4, `next-themes` dark mode, Lucide icons, cmdk, resizable panels.
-- **Type-safe env** — Zod-validated server env with fail-fast errors (`lib/env.ts`, server-only).
-- **Drizzle dev workflow** — schema-first Postgres with `drizzle-kit push`, no migration files in dev.
-
-## Tech stack
-
-| Layer      | Technology                                                |
-| ---------- | --------------------------------------------------------- |
-| Framework  | Next.js 16 (App Router, Server Actions, Route Handlers)   |
-| UI         | React 19, Tailwind CSS 4, shadcn/ui, Base UI, next-themes |
-| Auth       | Clerk (`@clerk/nextjs`, Organizations)                    |
-| Database   | Neon Postgres (`@neondatabase/serverless`, `pg`)          |
-| ORM        | Drizzle ORM + Drizzle Kit                                 |
-| AI         | Vercel AI SDK (`ai`, `@ai-sdk/react`), AI Gateway models  |
-| Validation | Zod                                                       |
-| Charts     | Recharts                                                  |
-| Language   | TypeScript (strict)                                       |
-| Tooling    | Bun, ESLint, Prettier, tsx                                |
+- **Start from an idea** — describe a game or choose a curated prompt starter.
+- **Build through chat** — continue the conversation in a streaming, resumable session powered by a Trigger.dev chat agent.
+- **Return to recent games** — open your organization's games from the sidebar.
+- **Stop or recover a turn** — cancel generation, retry when needed, and restore a reply from the saved conversation.
+- **Keep work private to your organization** — Clerk Organizations and org-scoped database queries isolate each organization's games.
+- **Use a polished workspace** — responsive app shell, dark mode, and a shared component system.
 
 ## How it works
 
+1. The home composer sends the initial game idea to the `createGame` Server Action.
+2. The action creates an organization-scoped game record with the first user message and immediately routes to `/games/[id]`.
+3. A Trigger.dev `chat.agent` session streams the conversation using the configured Gemini chat model.
+4. Transcript messages and session recovery state are saved to Postgres, so the conversation can be restored when you return.
+
 ```text
-User prompt
-  → createGame() Server Action (lib/games/actions.ts) seeds first user message
-  → INSERT INTO games (org_id, title, messages) — org-scoped, messages[0] is the prompt
-  → redirect /games/[id] (no ?message=)
-  → ChatThread hydrates from game.messages (initialMessages)
-  → auto-regenerate assistant reply when thread is exactly one user message
-  → POST /api/chat streams model response (AI Gateway)
+Prompt
+  → createGame() Server Action
+  → organization-scoped game + first message in Postgres
+  → /games/[id] loads the saved transcript
+  → Trigger.dev chat.agent streams the next reply
+  → transcript and recovery state are persisted
 ```
 
-Key files:
+## Implemented
 
-| Path                            | Role                                    |
-| ------------------------------- | --------------------------------------- |
-| `app/(app)/page.tsx`            | Landing composer + suggestions          |
-| `app/(app)/games/[id]/page.tsx` | Game session view                       |
-| `app/api/chat/route.ts`         | Streaming chat endpoint (auth-guarded)  |
-| `lib/games/actions.ts`          | `createGame` Server Action              |
-| `lib/games/queries.ts`          | Org-scoped game reads                   |
-| `lib/games/suggestions.ts`      | Curated prompt starters                 |
-| `db/schema.ts`                  | `games` table definition                |
-| `lib/db.ts`                     | Drizzle client                          |
-| `lib/env.ts`                    | Validated server env (Zod, server-only) |
-| `components/chat-composer.tsx`  | Chat input                              |
-| `components/chat-thread.tsx`    | Streaming thread UI                     |
-| `proxy.ts`                      | Clerk route protection                  |
+- [x] Prompt-to-game session creation with curated starters.
+- [x] Durable, streaming AI chat sessions using Trigger.dev.
+- [x] Per-game transcript persistence and session recovery state.
+- [x] Organization-scoped game creation, recent-game listing, and reads.
+- [x] Background game-title generation with a fast provisional-title fallback.
+- [x] Stop generation, retry, and recover a completed server-side reply.
+- [x] Dark-mode-capable interface and responsive application shell.
 
-### Data model
+## Roadmap
 
-```ts
-// db/schema.ts
-games {
-  id         uuid PK default random()
-  orgId      text  // Clerk org id, not a FK
-  title      text  // max 120 chars (enforced in action)
-  createdAt  timestamptz default now()
-  updatedAt  timestamptz default now() on update
-}
-// index: games_org_id_created_at_idx on (org_id, created_at desc)
-```
+- [ ] Generate and display a playable game preview.
+- [ ] Add game management actions such as rename, duplicate, and delete.
+- [ ] Add per-game model and system-prompt settings.
+- [ ] Add usage limits and rate limiting for AI generation.
+- [ ] Add end-to-end coverage for the create-to-chat flow.
+
+## Tech stack
+
+| Area            | Technology                                                  |
+| --------------- | ----------------------------------------------------------- |
+| Framework       | Next.js 16, App Router, Server Actions                      |
+| UI              | React 19, Tailwind CSS 4, shadcn/ui, Base UI, `next-themes` |
+| Authentication  | Clerk Organizations                                         |
+| Database        | Neon Postgres, `@neondatabase/serverless`                   |
+| ORM             | Drizzle ORM and Drizzle Kit                                 |
+| Chat runtime    | Trigger.dev durable chat agents                             |
+| AI              | Vercel AI SDK with Google Gemini models                     |
+| Validation      | Zod                                                         |
+| Language        | TypeScript (strict)                                         |
+| Package manager | npm (lockfile included)                                     |
 
 ## Getting started
 
 ### Prerequisites
 
-- Bun (or Node 20+ with npm/pnpm)
+- Node.js 24 or newer and npm
 - A Neon Postgres database
 - A Clerk application with Organizations enabled
-- A Gemini API key from Google AI Studio (used for `/api/chat` streaming and title generation via `@ai-sdk/google`)
+- A Google AI Studio API key
 
-### 1. Install
+### 1. Install dependencies
 
 ```bash
 npm install
 ```
 
-### 2. Configure environment
+### 2. Configure environment variables
 
-Copy the required keys into `.env.local`:
+Create `.env.local` in the project root:
 
-```bash
+```dotenv
 # Clerk — https://dashboard.clerk.com
 NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_...
 CLERK_SECRET_KEY=sk_test_...
 
-# Optional custom auth routes (already wired with Clerk defaults as fallback)
+# Optional custom auth routes (Clerk defaults are used as fallback)
 NEXT_PUBLIC_CLERK_SIGN_IN_URL=/sign-in
 NEXT_PUBLIC_CLERK_SIGN_UP_URL=/sign-up
 NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL=/
 NEXT_PUBLIC_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL=/
 
-# Neon Database
-DATABASE_URL=postgresql://...        # pooled URL (app runtime)
-DATABASE_URL_UNPOOLED=postgresql://... # direct URL (drizzle-kit push)
+# Neon Postgres: pooled URL for the app, direct/unpooled URL for Drizzle Kit
+DATABASE_URL=postgresql://...
+DATABASE_URL_UNPOOLED=postgresql://...
 
-# Gemini — https://aistudio.google.com/apikey
-# Two separate models via @ai-sdk/google (lib/ai.ts: getTitleModel / getChatModel)
-GEMINI_API_KEY=AIza...                  # from Google AI Studio
-GEMINI_TITLE_MODEL=gemini-3.5-flash-lite # cheapest/fastest — title generation
-GEMINI_CHAT_MODEL=gemini-3.8-flash       # newest flash — chat responses
+# Google AI Studio — https://aistudio.google.com/apikey
+GEMINI_API_KEY=AIza...
+GEMINI_TITLE_MODEL=gemini-3.5-flash-lite
+GEMINI_CHAT_MODEL=gemini-3.8-flash
 ```
 
-> `lib/env.ts` validates these eagerly at import time. A missing or malformed key throws a named error instead of failing silently later.
+The environment schema in `lib/env.ts` validates required values when server configuration is loaded. Model names can be changed with the corresponding `GEMINI_*_MODEL` variables.
 
-### 3. Push the schema (dev mode)
+### 3. Push the development schema
 
-This project uses Drizzle `push` in development — no migration files:
+This project uses Drizzle Kit `push` during development; migration files are not maintained in this workflow. Set `DATABASE_URL_UNPOOLED` to the direct database URL, then run:
 
 ```bash
 npm run db:push
 ```
 
-Optional visual explorer:
+To open Drizzle Studio:
 
 ```bash
 npm run db:studio
 ```
 
-### 4. Run
+### 4. Start the app and chat worker
+
+In one terminal, run the web app:
 
 ```bash
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000), sign in, select or create an organization, and type what you want to build.
+In another terminal, start the local Trigger.dev worker:
 
-## Scripts
+```bash
+npm run trigger:dev
+```
 
-| Command             | What it does                                       |
-| ------------------- | -------------------------------------------------- |
-| `npm run dev`       | Start Next.js dev server                           |
-| `npm run build`     | Production build                                   |
-| `npm run start`     | Serve production build                             |
-| `npm run lint`      | ESLint                                             |
-| `npm run typecheck` | `tsc --noEmit`                                     |
-| `npm run format`    | Prettier write on `ts/tsx`                         |
-| `npm run db:push`   | `drizzle-kit push` against `DATABASE_URL_UNPOOLED` |
-| `npm run db:studio` | Open Drizzle Studio                                |
-| `npm run test`      | Run unit tests once (`vitest run`)                 |
-| `npm run test:watch` | Watch mode (`vitest`)                              |
+Open [http://localhost:3000](http://localhost:3000), sign in, select or create an organization, and describe the game you want to build.
 
-### Testing
+## Useful scripts
 
-Vitest runs unit tests in `node` environment with `@/*` alias mapped to the project root.
-
-- `npm run test` — single run (CI)
-- `npm run test:watch` — watch mode for TDD
-
-Colocate tests next to source as `*.test.ts` / `*.test.tsx` (e.g. `lib/games/suggestions.test.ts`) or under `lib/`.
+| Command                  | Purpose                                       |
+| ------------------------ | --------------------------------------------- |
+| `npm run dev`            | Start the Next.js development server          |
+| `npm run build`          | Create a production build                     |
+| `npm run start`          | Serve the production build                    |
+| `npm run lint`           | Run Oxlint                                    |
+| `npm run lint:fix`       | Apply Oxlint fixes                            |
+| `npm run typecheck`      | Run `tsc --noEmit`                            |
+| `npm run test`           | Run the Vitest suite once                     |
+| `npm run test:watch`     | Run Vitest in watch mode                      |
+| `npm run format`         | Format TypeScript and TSX files with Prettier |
+| `npm run db:push`        | Push the schema with Drizzle Kit              |
+| `npm run db:studio`      | Open Drizzle Studio                           |
+| `npm run trigger:dev`    | Start the local Trigger.dev worker            |
+| `npm run trigger:deploy` | Deploy Trigger.dev tasks                      |
 
 ## Project structure
 
 ```text
 app/
-  (app)/page.tsx            # home composer
-  (app)/games/[id]/page.tsx # game session
-  (app)/layout.tsx          # authed layout
-  api/chat/route.ts         # streaming endpoint
-  sign-in/ sign-up/         # Clerk routes
-  layout.tsx                # root layout + providers
-  globals.css
+  (app)/page.tsx              # Home composer and prompt starters
+  (app)/games/[id]/page.tsx   # Game chat session
+  (app)/layout.tsx            # Authenticated application layout
+  sign-in/ sign-up/           # Clerk pages
+  layout.tsx                  # Root layout and providers
 components/
-  create-game-composer.tsx  # landing prompt → createGame
-  chat-composer.tsx         # message input
-  chat-thread.tsx           # streaming thread
-  app-sidebar.tsx
-  ui/                       # shadcn/ui primitives
-db/schema.ts                # games table
+  create-game-composer.tsx    # Landing prompt → createGame
+  chat-composer.tsx           # Shared chat input
+  chat-thread.tsx             # Streaming chat and recovery UI
+  app-sidebar.tsx             # Recent games navigation
+  ui/                         # Shared UI primitives
+trigger/
+  chat.ts                     # Trigger.dev game-chat agent
 lib/
-  db.ts                     # drizzle client
-  env.ts                    # validated env
-  games/actions.ts          # server actions
-  games/queries.ts          # reads
-  games/suggestions.ts      # starters
-drizzle.config.ts
-proxy.ts                    # auth middleware
+  ai.ts                       # Gemini model configuration
+  chat/                       # Transcript storage and session actions
+  games/actions.ts            # Game creation and title generation
+  games/queries.ts            # Organization-scoped game reads
+  games/suggestions.ts        # Curated prompt starters
+db/schema.ts                  # Games and transcript database schema
+proxy.ts                      # Clerk route protection
 ```
-
-## Roadmap
-
-- [ ] Persist chat messages per game (currently only games are stored)
-- [ ] Render a real-time playable preview (Three.js viewport)
-- [ ] Game listing / library page per org
-- [ ] Rename, duplicate, and delete games
-- [ ] Per-game model settings and system prompt
-- [ ] Usage limits and rate limiting on `/api/chat`
-- [ ] E2E tests for create → stream flow
 
 ## Contributing
 
-Issues and PRs are welcome. Keep changes small and scoped:
+Issues and pull requests are welcome. Keep changes focused and run the relevant checks before submitting:
 
-1. Fork and branch from `main`.
-2. Run `npm run typecheck` and `npm run lint` before pushing.
-3. Describe the problem, the fix, and how you verified it.
+```bash
+npm run typecheck
+npm run lint
+npm run test
+```
+
+Describe the motivation, implementation, and verification performed.
 
 ## License
 
