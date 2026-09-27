@@ -43,6 +43,19 @@ export const gameChat = chat.agent({
     const seed = shouldSeedHistory([], row?.messages ?? [])
     if (seed) chat.history.set(seed)
   },
+  // First message of a chat's lifetime. Provision the game's Daytona
+  // sandbox exactly once here, before the run loop. `chatId` is the game
+  // id: the transcript storage maps chats onto `games.id`. The helper is
+  // idempotent, so a game that already owns a sandbox is left untouched.
+  onChatStart: async ({ chatId }) => {
+    // Loaded dynamically: the helper (and transitively `@/lib/daytona/client`)
+    // reads server-only env at module scope, and a static import here would
+    // drag that side effect into every consumer of this module. The hook only
+    // runs server-side in the worker, which resolves the `react-server`
+    // condition and has DAYTONA_API_KEY available.
+    const { createGameSandbox } = await import("@/lib/daytona/utils")
+    await createGameSandbox(chatId)
+  },
   run: async ({ messages, signal, streamText }) => {
     assertTranscriptNotEmpty(messages)
     return streamText({
