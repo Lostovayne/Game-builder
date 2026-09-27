@@ -40,9 +40,9 @@ The README currently opens with a screenshot presented as a logo, describes an o
 ## Progress and evidence
 
 - At audit time, the workspace had pre-existing chat source/tests, package files, and untracked files. The current README references the actual screenshot asset `public/capture.png` (1717×916); `public/capture.webp` is absent.
-- The user subsequently authorized commit and push. Delivery will be on a feature branch; unrelated paths such as the `NUL` artifact and unintegrated `@daytona/sdk` dependency must not be bundled silently.
+- The user subsequently authorized commit and push. The README/assets work is committed on the feature branch. The unintegrated `@daytona/sdk` change is isolated in its own dependency commit; the unrelated `NUL` artifact is excluded.
 - Engram mirror save was attempted but could not be completed because multiple active runtime sessions match the project/worktree. The task document remains the local progress record.
 
 ## Next step
 
-README refresh is complete. The user authorized delivery; `README.md`, `public/capture.png`, and this task record are grouped as a docs/assets work unit on `feat/chat-stop-readme-refresh`.
+README refresh is complete. `README.md` and `public/capture.png` are in commit `90ac633` (`docs: refresh product README`) on `feat/chat-stop-readme-refresh`. The screenshot is the actual product chat capture and is 1717×916.

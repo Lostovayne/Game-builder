@@ -187,7 +187,10 @@ implicitly by the request. Test runner: `npm test` (vitest, already in repo).
 - User authorized commit and push on 2026-09-27.
 - Branch: `feat/chat-stop-readme-refresh`, created from `main` after fetching `origin`.
 - Fresh-context review: PASS; no actionable defects found.
-- Current delivery plan: include this feature and its task record in a dedicated conventional commit, then push the feature branch.
+- Chat cancellation commit: `b4501d2` (`feat(chat): allow stopping generation`).
+- README and screenshot commit: `90ac633` (`docs: refresh product README`).
+- Dependency commit: `bb00a63` (`chore(deps): add Daytona SDK`); this isolated package change was present in the user's working tree and has no repository source import yet.
+- Branch push and upstream verification are pending.
 
 ## Native review status — DECLINED (needs a user decision)
 
