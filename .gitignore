@@ -47,6 +47,8 @@ next-env.d.ts
 .codegraph/
 .neon
 
+NUL
+
 # pi agent local
 .pi/
 .commandcode/
