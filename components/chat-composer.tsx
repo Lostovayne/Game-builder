@@ -1,6 +1,6 @@
 "use client"
 
-import { ArrowUp, ChevronDown, Grip } from "lucide-react"
+import { ArrowUp, ChevronDown, Grip, Square } from "lucide-react"
 import { useLayoutEffect, useRef, type SubmitEvent } from "react"
 
 import {
@@ -21,6 +21,8 @@ type ChatComposerProps = {
   onValueChangeAction: (value: string) => void
   onSubmitAction: (value: string) => void
   isSubmitting?: boolean
+  isStoppable?: boolean
+  onStopAction?: () => void
   error?: string | null
   placeholder?: string
 }
@@ -30,10 +32,13 @@ export function ChatComposer({
   onValueChangeAction,
   onSubmitAction,
   isSubmitting = false,
+  isStoppable = false,
+  onStopAction,
   error = null,
   placeholder = "Describe the game you want to build...",
 }: ChatComposerProps) {
   const canSubmit = value.trim().length > 0 && !isSubmitting
+  const stopMode = isStoppable && onStopAction !== undefined
   const pendingSelectionRef = useRef<{
     element: HTMLTextAreaElement
     position: number
@@ -116,16 +121,29 @@ export function ChatComposer({
                 <DropdownMenuItem>GPT-5</DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-            <InputGroupButton
-              size="icon-sm"
-              variant="default"
-              className="rounded-full"
-              type="submit"
-              disabled={!canSubmit}
-              aria-label="Send message"
-            >
-              <ArrowUp />
-            </InputGroupButton>
+            {stopMode && onStopAction ? (
+              <InputGroupButton
+                size="icon-sm"
+                variant="default"
+                className="rounded-full"
+                type="button"
+                onClick={() => onStopAction()}
+                aria-label="Stop generation"
+              >
+                <Square />
+              </InputGroupButton>
+            ) : (
+              <InputGroupButton
+                size="icon-sm"
+                variant="default"
+                className="rounded-full"
+                type="submit"
+                disabled={!canSubmit}
+                aria-label="Send message"
+              >
+                <ArrowUp />
+              </InputGroupButton>
+            )}
           </InputGroupAddon>
         </InputGroup>
       </form>

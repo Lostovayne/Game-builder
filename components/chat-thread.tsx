@@ -82,6 +82,11 @@ export function ChatThread({
   const messagesRef = useRef<UIMessage[]>(initialMessages ?? [])
   const recoveredForRef = useRef<string | null>(null)
   const recoveringForRef = useRef<string | null>(null)
+  // Id of the user message the user deliberately stopped. A ref (not
+  // state) because the memoized transport and closure-based recovery
+  // helpers must observe it without re-creating. Cleared on new user
+  // activity so recovery for the next turn stays fully enabled.
+  const stoppedByUserRef = useRef<string | null>(null)
   const recoverRef = useRef<(userId: string) => void>(() => {})
   const [recovering, setRecovering] = useState(false)
   // User id whose turn definitively has nothing to pull → offer retry.
@@ -132,13 +137,20 @@ export function ChatThread({
     },
   })
 
-  const { messages, sendMessage, status, error, regenerate, setMessages } =
-    useChat({
-      id: gameId,
-      messages: initialMessages,
-      transport,
-      resume: !!initialSessions,
-    })
+  const {
+    messages,
+    sendMessage,
+    stop,
+    status,
+    error,
+    regenerate,
+    setMessages,
+  } = useChat({
+    id: gameId,
+    messages: initialMessages,
+    transport,
+    resume: !!initialSessions,
+  })
 
   // Keep the message mirror fresh for the memoized `onEvent` above.
   useEffect(() => {
@@ -151,6 +163,8 @@ export function ChatThread({
    * `turn-completed` deliveries run it exactly once per turn.
    */
   const recover = async (userId: string) => {
+    // A deliberately stopped turn never begins polling.
+    if (stoppedByUserRef.current === userId) return
     if (
       recoveringForRef.current === userId ||
       recoveredForRef.current === userId
@@ -172,6 +186,7 @@ export function ChatThread({
             currentLastMessageId: curLast?.id,
             userId,
             hasAssistantReply: hasAssistantReply(cur, userId),
+            stoppedByUser: stoppedByUserRef.current === userId,
           })
         ) {
           setFailedFor(null)
@@ -191,6 +206,7 @@ export function ChatThread({
             currentLastMessageId: freshLast?.id,
             userId,
             hasAssistantReply: hasAssistantReply(fresh, userId),
+            stoppedByUser: stoppedByUserRef.current === userId,
           })
         ) {
           setFailedFor(null)
@@ -234,13 +250,32 @@ export function ChatThread({
     void recoverRef.current(last.id)
   }, [status, error])
 
+  function handleStop() {
+    const last = messagesRef.current[messagesRef.current.length - 1]
+    if (last && last.role === "user" && last.id) {
+      stoppedByUserRef.current = last.id
+    }
+    // Order matters: stopGeneration sends the `{kind:"stop"}` input-stream
+    // signal so the agent aborts its `streamText` call server-side (this app
+    // passes `resume`, so aborting alone would never reach the server),
+    // while `stop()` aborts the local reader and flips status back to ready.
+    // Do NOT call `transport.clearSupersedeGate` here: the agent still
+    // writes its `turn-complete` boundary on a normal stop and the SDK's
+    // local supersede gate self-clears on it; `clearSupersedeGate` exists
+    // for the different case where the boundary was never written.
+    void transport.stopGeneration(gameId).catch(() => {})
+    stop()
+  }
+
   function handleSend(value: string) {
     setFailedFor(null)
+    stoppedByUserRef.current = null
     void sendMessage({ text: value })
     setInput("")
   }
 
   async function handleRetry() {
+    stoppedByUserRef.current = null
     const last = messagesRef.current[messagesRef.current.length - 1]
     if (!last || last.role !== "user" || !last.id) {
       // Nothing concrete to verify against — just try the turn again.
@@ -525,6 +560,8 @@ export function ChatThread({
           onValueChangeAction={setInput}
           onSubmitAction={handleSend}
           isSubmitting={status !== "ready"}
+          isStoppable={isBusy}
+          onStopAction={handleStop}
           error={error?.message ?? null}
           placeholder="Reply..."
         />
