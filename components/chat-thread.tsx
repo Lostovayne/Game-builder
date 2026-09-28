@@ -4,6 +4,7 @@ import { useChat } from "@ai-sdk/react"
 import { useTriggerChatTransport } from "@trigger.dev/sdk/chat/react"
 import type { UIMessage } from "ai"
 import Image from "next/image"
+import { useRouter } from "next/navigation"
 import { useEffect, useRef, useState } from "react"
 
 import { ChatComposer } from "@/components/chat-composer"
@@ -22,6 +23,13 @@ import {
   mintGameAccessToken,
   startGameSession,
 } from "@/lib/chat/actions"
+import { getGameTitle } from "@/lib/games/actions"
+import {
+  isProvisionalTitle,
+  pollForRefinedTitle,
+  seedPromptFromMessages,
+  shouldPreloadInitialChat,
+} from "@/lib/games/title-refresh"
 import type { gameChat } from "@/trigger/chat"
 import { RECOVERY_DELAYS_MS, shouldRecoverTurn } from "@/lib/chat/recovery"
 
@@ -64,16 +72,19 @@ function hasAssistantReply(list: UIMessage[], userId: string): boolean {
 
 export function ChatThread({
   gameId,
+  initialTitle,
   initialMessages,
   initialSessions,
 }: {
   gameId: string
+  initialTitle: string
   initialMessages?: UIMessage[]
   initialSessions?: Record<
     string,
     { publicAccessToken: string; lastEventId: string }
   >
 }) {
+  const router = useRouter()
   const [input, setInput] = useState("")
   const autoFiredForIdRef = useRef<string | null>(null)
   const retryCountRef = useRef(0)
@@ -151,6 +162,42 @@ export function ChatThread({
     transport,
     resume: !!initialSessions,
   })
+
+  // Pull the asynchronously refined title into the mounted sidebar. The
+  // server already ran `revalidatePath("/", "layout")` after the DB update,
+  // so a single `router.refresh()` merges a fresh RSC payload into the
+  // layout. Bounded, cancel-on-unmount, and fires at most once per game —
+  // never on a repeating interval. `router.refresh()` preserves client
+  // state (the `useChat` transcript and this component's local state), so
+  // the active conversation is never disrupted.
+  //
+  // Guard: only poll when the stored title is still the provisional title
+  // derived from the seeded first prompt. A game whose title is already
+  // final (refined earlier, or renamed) can never match, so it would burn
+  // its whole 24s/16-request budget for nothing. The prompt is read from
+  // `initialMessages` on the client and is never sent anywhere.
+  const seedPrompt = seedPromptFromMessages(initialMessages ?? [])
+  const refinedForGameRef = useRef<string | null>(null)
+  useEffect(() => {
+    // A refresh already delivered the refined title for this game; the
+    // changed `initialTitle` prop must not start another poll cycle.
+    if (refinedForGameRef.current === gameId) return
+    if (!isProvisionalTitle({ initialTitle, seedPrompt })) return
+    let cancelled = false
+    void pollForRefinedTitle({
+      initialTitle,
+      fetchTitle: () => getGameTitle(gameId),
+      onRefined: () => {
+        if (cancelled) return
+        refinedForGameRef.current = gameId
+        router.refresh()
+      },
+      isCancelled: () => cancelled,
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [gameId, initialTitle, seedPrompt, router])
 
   // Keep the message mirror fresh for the memoized `onEvent` above.
   useEffect(() => {
@@ -317,6 +364,38 @@ export function ChatThread({
     if (!curLast || curLast.id !== userId) return
     void regenerate()
   }
+
+  // Low-cost, on-demand preload for the immediate auto-send flow.
+  //
+  // A brand-new game lands here with exactly one seeded user message, and
+  // the auto-send effect below fires its first turn within a few ms. In that
+  // one case we can overlap Trigger run/worker startup with the send by
+  // eagerly creating the session now, shaving part of the cold-start wait
+  // that previously all happened after the message was posted.
+  //
+  // Registered BEFORE the auto-send effect so it starts as early as possible
+  // in the same commit. It deliberately does NOT gate or postpone the send:
+  // the SDK shares one in-flight start per chatId (`pendingStarts`), so
+  // `preload` and the send's own lazy start converge on the same session —
+  // no duplicate run, no dropped first message. StrictMode's repeated effect
+  // is deduped the same way, and an already-hydrated session short-circuits.
+  //
+  // Persistent warm capacity stays disabled: this is on-demand only, and
+  // `shouldPreloadInitialChat` declines every flow without that immediate
+  // send, so we never pay idle compute speculatively. A failed preload is
+  // logged and nothing more — the send path still lazy-starts the session.
+  useEffect(() => {
+    if (
+      !shouldPreloadInitialChat({
+        hasSession: !!initialSessions,
+        messages: initialMessages ?? [],
+      })
+    )
+      return
+    void transport.preload(gameId).catch((err) => {
+      console.error("[chat] preload failed", err)
+    })
+  }, [gameId, transport, initialMessages, initialSessions])
 
   // Auto-request assistant reply when the thread is exactly one seeded
   // user message (creation orphan / interrupted first turn).
