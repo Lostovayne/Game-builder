@@ -23,6 +23,10 @@ import {
   mintGameAccessToken,
   startGameSession,
 } from "@/lib/chat/actions"
+import {
+  progressiveStatusText,
+  scheduleProgressiveStatusSteps,
+} from "@/lib/chat/progressive-status"
 import { getGameTitle } from "@/lib/games/actions"
 import {
   isProvisionalTitle,
@@ -34,23 +38,27 @@ import type { gameChat } from "@/trigger/chat"
 import { RECOVERY_DELAYS_MS, shouldRecoverTurn } from "@/lib/chat/recovery"
 
 function useProgressiveStatus(active: boolean): string {
-  const [step, setStep] = useState(0)
+  // The step sequence restarts on every activation. The reset is done by
+  // adjusting state during render (React's "derive state from props" pattern)
+  // so no synchronous setState runs inside an effect, which would cascade a
+  // second render. Timer callbacks are the only other writer.
+  const [{ wasActive, step }, setProgress] = useState({
+    wasActive: active,
+    step: 0,
+  })
+
+  if (wasActive !== active) {
+    setProgress({ wasActive: active, step: 0 })
+  }
+
   useEffect(() => {
-    if (!active) {
-      setStep(0)
-      return
-    }
-    const t1 = window.setTimeout(() => setStep(1), 2000)
-    const t2 = window.setTimeout(() => setStep(2), 6000)
-    return () => {
-      window.clearTimeout(t1)
-      window.clearTimeout(t2)
-    }
+    if (!active) return
+    return scheduleProgressiveStatusSteps((nextStep) =>
+      setProgress((prev) => ({ ...prev, step: nextStep }))
+    )
   }, [active])
 
-  if (step === 0) return "Estableciendo la conexión…"
-  if (step === 1) return "Esperando al modelo…"
-  return "Conectado a Kimi K3…"
+  return progressiveStatusText(step)
 }
 
 const sleep = (ms: number) =>
