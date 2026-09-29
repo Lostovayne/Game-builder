@@ -3,7 +3,7 @@ import { auth as triggerAuth } from "@trigger.dev/sdk"
 import { notFound } from "next/navigation"
 import type { UIMessage } from "ai"
 
-import { ChatThread } from "@/components/chat-thread"
+import { GameChat } from "@/components/game-chat"
 import { getGame } from "@/lib/games/queries"
 
 export default async function GamePage(props: {
@@ -40,7 +40,7 @@ export default async function GamePage(props: {
 
   return (
     <div className="flex h-dvh min-h-0 flex-col overflow-hidden">
-      <ChatThread
+      <GameChat
         gameId={game.id}
         initialTitle={game.title}
         initialMessages={initialMessages}
