@@ -24,11 +24,14 @@ type ChatSessions = Record<
  */
 export function GameChat({
   gameId,
+  sandboxId,
   initialTitle,
   initialMessages,
   initialSessions,
 }: {
   gameId: string
+  /** Present only when the game has a persisted Daytona sandbox. */
+  sandboxId: string | null
   initialTitle: string
   initialMessages?: UIMessage[]
   initialSessions?: ChatSessions
@@ -48,15 +51,21 @@ export function GameChat({
           initialSessions={initialSessions}
         />
       </ResizablePanel>
-      <ResizableHandle withHandle />
-      <ResizablePanel
-        id="game-chat-preview"
-        defaultSize="38%"
-        minSize="15%"
-        className="flex min-h-0 flex-col"
-      >
-        <ChatPreview />
-      </ResizablePanel>
+      {/* The preview panel (and its resizable handle) only makes sense when
+          the game actually has a sandbox to preview. */}
+      {sandboxId !== null ? (
+        <>
+          <ResizableHandle withHandle />
+          <ResizablePanel
+            id="game-chat-preview"
+            defaultSize="38%"
+            minSize="15%"
+            className="flex min-h-0 flex-col"
+          >
+            <ChatPreview gameId={gameId} />
+          </ResizablePanel>
+        </>
+      ) : null}
     </ResizablePanelGroup>
   )
 }

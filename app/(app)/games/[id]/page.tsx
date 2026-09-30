@@ -42,6 +42,7 @@ export default async function GamePage(props: {
     <div className="flex h-dvh min-h-0 flex-col overflow-hidden">
       <GameChat
         gameId={game.id}
+        sandboxId={game.sandboxId}
         initialTitle={game.title}
         initialMessages={initialMessages}
         initialSessions={initialSessions}

@@ -34,6 +34,7 @@ export const getGame = cache(async (id: string) => {
       title: games.title,
       messages: games.messages,
       lastEventId: games.lastEventId,
+      sandboxId: games.sandboxId,
     })
     .from(games)
     .where(and(eq(games.id, id), eq(games.orgId, orgId)))
