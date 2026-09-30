@@ -13,6 +13,105 @@ const GAME_SANDBOX_FILE_MODE = "755"
 const GAME_STARTER_CONTENT = "New Game"
 
 /**
+ * Fixed port the game preview HTTP server listens on inside the sandbox.
+ * Exported so downstream API tasks can build preview URLs against it.
+ */
+export const GAME_PREVIEW_PORT = 8000
+
+const GAME_HEALTH_CHECK_TIMEOUT_SECONDS = 10
+const GAME_SERVER_START_TIMEOUT_SECONDS = 60
+const GAME_HEALTH_POLL_INTERVAL_MS = 500
+const GAME_HEALTH_POLL_ATTEMPTS = 20
+const GAME_PREVIEW_SESSION_ID = "game-preview"
+
+async function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
+/**
+ * Probes the fixed preview port from inside the sandbox. Returns true only
+ * when something is serving HTTP 200 on the game preview port.
+ */
+async function isPreviewPortHealthy(sandbox: {
+  process: {
+    executeCommand(
+      command: string,
+      cwd?: string,
+      env?: Record<string, string>,
+      timeout?: number
+    ): Promise<{ exitCode: number; result: string }>
+  }
+}): Promise<boolean> {
+  const response = await sandbox.process.executeCommand(
+    `curl -fsS -o /dev/null -w '%{http_code}' http://127.0.0.1:${GAME_PREVIEW_PORT}/`,
+    undefined,
+    undefined,
+    GAME_HEALTH_CHECK_TIMEOUT_SECONDS
+  )
+
+  return response.exitCode === 0 && response.result.trim() === "200"
+}
+
+/**
+ * Ensures a static HTTP server for the seeded game directory is running on
+ * the fixed preview port of the existing sandbox, and that the sandbox
+ * itself is running.
+ *
+ * Never creates a sandbox: the sandbox is always retrieved by the persisted
+ * id and started only when it is stopped. The preview port is health-checked
+ * first; a healthy server is reused without launching any process. An
+ * unhealthy port gets a persistent static server (background session) serving
+ * `/home/daytona/game`, then health is polled until it responds or startup
+ * fails.
+ *
+ * Idempotent for normal sequential calls: once the server is healthy,
+ * subsequent calls return without launching anything.
+ */
+export async function startGameServer(sandboxId: string): Promise<void> {
+  const sandbox = await daytona.get(sandboxId)
+
+  if (sandbox.state !== "started") {
+    await sandbox.start(GAME_SERVER_START_TIMEOUT_SECONDS)
+  }
+
+  if (await isPreviewPortHealthy(sandbox)) {
+    return
+  }
+
+  // A previous run's session may linger after its server died; the Daytona
+  // session API has no upsert, so tolerate the already-exists error and
+  // proceed to launch into the existing session.
+  try {
+    await sandbox.process.createSession(GAME_PREVIEW_SESSION_ID)
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error)
+    if (!/already exist/i.test(message)) {
+      throw error
+    }
+  }
+
+  await sandbox.process.executeSessionCommand(
+    GAME_PREVIEW_SESSION_ID,
+    {
+      command: `cd ${GAME_SANDBOX_DIR} && python3 -m http.server ${GAME_PREVIEW_PORT} --bind 0.0.0.0`,
+      runAsync: true,
+    },
+    GAME_SERVER_START_TIMEOUT_SECONDS
+  )
+
+  for (let attempt = 0; attempt < GAME_HEALTH_POLL_ATTEMPTS; attempt++) {
+    if (await isPreviewPortHealthy(sandbox)) {
+      return
+    }
+    await sleep(GAME_HEALTH_POLL_INTERVAL_MS)
+  }
+
+  throw new Error(
+    `Game preview server did not become healthy on port ${GAME_PREVIEW_PORT} for sandbox ${sandboxId}`
+  )
+}
+
+/**
  * Provisions (at most once) the Daytona sandbox bound to a game, seeds the
  * starter game file, and returns the sandbox id.
  *

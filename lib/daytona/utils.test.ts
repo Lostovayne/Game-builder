@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest"
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 // Both external boundaries are isolated here so this suite runs offline:
 // no `server-only` chain, no env validation, and no live Daytona API call.
@@ -44,16 +44,53 @@ const daytonaMock = vi.hoisted(() => {
   return { create, createFolder, uploadFile, makeSandbox }
 })
 
+const previewMock = vi.hoisted(() => {
+  const state = { value: "started" }
+  const executeCommand = vi.fn(async () => ({ exitCode: 0, result: "200" }))
+  const createSession = vi.fn(async () => undefined)
+  const executeSessionCommand = vi.fn(
+    async (
+      _sessionId: string,
+      _request: { command: string; runAsync?: boolean }
+    ) => ({
+      cmdId: "cmd-1",
+      output: "",
+      exitCode: 0,
+    })
+  )
+  const start = vi.fn(async () => undefined)
+  const makeSandbox = () => ({
+    id: "sandbox-1",
+    state: state.value,
+    start,
+    process: { executeCommand, createSession, executeSessionCommand },
+  })
+  const get = vi.fn(async () => makeSandbox())
+
+  return {
+    state,
+    get,
+    start,
+    executeCommand,
+    createSession,
+    executeSessionCommand,
+  }
+})
+
 // The module under test is server-side by contract, but Vitest runs without
 // the `react-server` condition, where the `server-only` marker throws. Mock
 // the marker so the suite can import the module offline.
 vi.mock("server-only", () => ({}))
 vi.mock("@/lib/db", () => ({ db: dbMock.db }))
 vi.mock("@/lib/daytona/client", () => ({
-  daytona: { create: daytonaMock.create },
+  daytona: { create: daytonaMock.create, get: previewMock.get },
 }))
 
-import { createGameSandbox } from "@/lib/daytona/utils"
+import {
+  GAME_PREVIEW_PORT,
+  createGameSandbox,
+  startGameServer,
+} from "@/lib/daytona/utils"
 
 describe("createGameSandbox", () => {
   beforeEach(() => {
@@ -184,5 +221,152 @@ describe("createGameSandbox", () => {
 
     expect(dbMock.update).not.toHaveBeenCalled()
     expect(dbMock.set).not.toHaveBeenCalled()
+  })
+})
+
+describe("startGameServer", () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    previewMock.state.value = "started"
+    previewMock.executeCommand.mockReset()
+    previewMock.executeCommand.mockResolvedValue({ exitCode: 0, result: "200" })
+    previewMock.createSession.mockReset()
+    previewMock.createSession.mockResolvedValue(undefined)
+    previewMock.executeSessionCommand.mockReset()
+    previewMock.executeSessionCommand.mockResolvedValue({
+      cmdId: "cmd-1",
+      output: "",
+      exitCode: 0,
+    })
+    previewMock.start.mockReset()
+    previewMock.start.mockResolvedValue(undefined)
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  it("recovers when the preview session already exists from a dead server", async () => {
+    // Port unhealthy (server died), but the old session still lingers.
+    previewMock.executeCommand
+      .mockResolvedValueOnce({ exitCode: 7, result: "000" })
+      .mockResolvedValue({ exitCode: 0, result: "200" })
+    previewMock.createSession.mockRejectedValueOnce(
+      new Error("session already exists")
+    )
+
+    await startGameServer("sandbox-1")
+
+    // The launch command still ran and health was confirmed.
+    expect(previewMock.executeSessionCommand).toHaveBeenCalledTimes(1)
+    expect(previewMock.executeCommand).toHaveBeenCalledTimes(2)
+  })
+
+  it("propagates when the initial health check itself errors", async () => {
+    previewMock.executeCommand.mockRejectedValue(new Error("toolbox down"))
+
+    await expect(startGameServer("sandbox-1")).rejects.toThrow("toolbox down")
+
+    expect(previewMock.createSession).not.toHaveBeenCalled()
+    expect(previewMock.executeSessionCommand).not.toHaveBeenCalled()
+  })
+
+  it("propagates when Daytona cannot retrieve the sandbox", async () => {
+    previewMock.get.mockRejectedValueOnce(new Error("sandbox not found"))
+
+    await expect(startGameServer("sandbox-1")).rejects.toThrow(
+      "sandbox not found"
+    )
+
+    expect(previewMock.start).not.toHaveBeenCalled()
+    expect(previewMock.createSession).not.toHaveBeenCalled()
+  })
+
+  it("is idempotent across repeated sequential calls once healthy", async () => {
+    // First call: unhealthy, launch, then healthy.
+    previewMock.executeCommand
+      .mockResolvedValueOnce({ exitCode: 7, result: "000" })
+      .mockResolvedValue({ exitCode: 0, result: "200" })
+
+    await startGameServer("sandbox-1")
+    const launchesAfterFirst =
+      previewMock.executeSessionCommand.mock.calls.length
+
+    // Second call: healthy port is reused, nothing new is launched.
+    await startGameServer("sandbox-1")
+
+    expect(previewMock.executeSessionCommand).toHaveBeenCalledTimes(
+      launchesAfterFirst
+    )
+    expect(previewMock.createSession).toHaveBeenCalledTimes(1)
+    expect(previewMock.start).not.toHaveBeenCalled()
+  })
+
+  it("fails meaningfully when the launched server never becomes healthy", async () => {
+    vi.useFakeTimers()
+    previewMock.executeCommand.mockResolvedValue({
+      exitCode: 7,
+      result: "000",
+    })
+
+    const promise = startGameServer("sandbox-1")
+    const expectation = expect(promise).rejects.toThrow(
+      /did not become healthy/
+    )
+
+    // Drive the health-poll loop without real waiting.
+    await vi.runAllTimersAsync()
+    await expectation
+
+    expect(previewMock.createSession).toHaveBeenCalledTimes(1)
+    expect(previewMock.executeSessionCommand).toHaveBeenCalledTimes(1)
+  })
+
+  it("launches a persistent static server when the port is unhealthy, then becomes healthy", async () => {
+    // First probe (initial health check) fails; after the launch, healthy.
+    previewMock.executeCommand
+      .mockResolvedValueOnce({ exitCode: 7, result: "000" })
+      .mockResolvedValue({ exitCode: 0, result: "200" })
+
+    await startGameServer("sandbox-1")
+
+    expect(previewMock.createSession).toHaveBeenCalledWith("game-preview")
+    expect(previewMock.executeSessionCommand).toHaveBeenCalledTimes(1)
+    const [sessionId, request] = previewMock.executeSessionCommand.mock.calls[0]
+    expect(sessionId).toBe("game-preview")
+    expect(request.command).toContain("cd /home/daytona/game")
+    expect(request.command).toContain("http.server")
+    expect(request.command).toContain(String(GAME_PREVIEW_PORT))
+    expect(request.runAsync).toBe(true)
+    // Only the initial failing probe plus one healthy poll: no retry storm.
+    expect(previewMock.executeCommand).toHaveBeenCalledTimes(2)
+  })
+
+  it("starts a stopped sandbox in place instead of replacing it", async () => {
+    previewMock.state.value = "stopped"
+
+    await startGameServer("sandbox-1")
+
+    expect(previewMock.get).toHaveBeenCalledWith("sandbox-1")
+    expect(previewMock.start).toHaveBeenCalledTimes(1)
+    expect(previewMock.start).toHaveBeenCalledWith(expect.any(Number))
+    expect(daytonaMock.create).not.toHaveBeenCalled()
+  })
+
+  it("retrieves the existing sandbox by id and reuses a healthy preview port without launching anything", async () => {
+    await startGameServer("sandbox-1")
+
+    expect(previewMock.get).toHaveBeenCalledWith("sandbox-1")
+    expect(daytonaMock.create).not.toHaveBeenCalled()
+    expect(previewMock.start).not.toHaveBeenCalled()
+    expect(previewMock.createSession).not.toHaveBeenCalled()
+    expect(previewMock.executeSessionCommand).not.toHaveBeenCalled()
+    // The health check targets the fixed preview port inside the sandbox.
+    expect(previewMock.executeCommand).toHaveBeenCalledWith(
+      expect.stringContaining(`127.0.0.1:${GAME_PREVIEW_PORT}`),
+      undefined,
+      undefined,
+      expect.any(Number)
+    )
   })
 })
