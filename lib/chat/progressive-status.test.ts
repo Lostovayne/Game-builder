@@ -36,7 +36,8 @@ describe("scheduleProgressiveStatusSteps", () => {
     expect(steps).toEqual([1])
 
     vi.advanceTimersByTime(
-      PROGRESSIVE_STATUS_STEP_DELAYS_MS[1] - PROGRESSIVE_STATUS_STEP_DELAYS_MS[0]
+      PROGRESSIVE_STATUS_STEP_DELAYS_MS[1] -
+        PROGRESSIVE_STATUS_STEP_DELAYS_MS[0]
     )
     expect(steps).toEqual([1, 2])
   })
