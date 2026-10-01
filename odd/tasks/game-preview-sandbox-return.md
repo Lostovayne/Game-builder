@@ -63,6 +63,9 @@ The preview route resolves the same sandbox twice: once inside `startGameServer`
 
 ## Verification and commit
 
+- **Committed:** branch `refactor/preview-sandbox-return`, commit `bfbec34` `refactor(daytona): return sandbox from startGameServer`.
+- Not pushed, no PR: neither was authorized.
+
 - RDD review executed on this candidate: lineage `review-1ea7a59a39c8741e`, target `sha256:362ac31a…`, tier `medium` (trigger: `executable_change` in `app/api/games/[id]/preview/route.test.ts`), lens `review-reliability` (1 model run via pi host relay).
 - Outcome: **approved** → acknowledged (`native-approved-acknowledgement-completed`, authority `burned`, burn evidence `gentle-ai.review-acknowledged/v1`). Delivery remains ordinary repository policy.
 - Read-only `assess` after the acknowledgement returned `risk: unassessable` with `nativeReviewOutcome: closed` (`outcome_source: explicit`), `writerProfile: large` — the failure was a bookkeeping error about untracked files (only this document is untracked), not a code finding. Per contract, `unassessable` is verified exactly like `high`, so an independent fresh-context verifier was run as the separate check.
@@ -70,4 +73,4 @@ The preview route resolves the same sandbox twice: once inside `startGameServer`
   - Verifier confirmed independently: two explicit success returns both yielding `{ sandbox }`, no throw path changed, `daytona.create` never called, `get` `toHaveBeenCalledTimes(1)` on all three success paths (a duplicate retrieval fails even against the cached mock), route pins `(8000, 3600)` on the returned sandbox, 401/404 precede any Daytona access, no `MUTATION` residue, 502 body carries no internal error text.
   - Sole WARNING (non-blocking): `route.ts:58` logs `error instanceof Error ? error.message : error`, so a thrown non-`Error` value is logged raw rather than its `.message`. This line is byte-identical to `HEAD` — it is pre-existing, outside this refactor's diff, and the response body still returns only the generic 502 text. Recorded as a pre-existing nit, not a defect of this change.
 - The verifier could not write its Engram save: Engram reported multiple active runtime sessions for this project and directory (same known ambiguity as before; `mem_doctor` reports 0 warnings at parent level). The finding was recorded by the orchestrator instead.
-- No commit is authorized yet. Record commit identity here only after the user explicitly authorizes delivery.
+- **Commit authorized and created.** Branch `refactor/preview-sandbox-return` (cut from `main`), commit `bfbec34` `refactor(daytona): return sandbox from startGameServer` — 5 files, 137 insertions / 18 deletions (4 in-scope files plus this document). Pre-commit verification on the committed tree: `npm test` 9 files / 91 tests, `npm run typecheck` clean, `npm run lint` clean. No push and no PR were authorized; delivery remains local.
