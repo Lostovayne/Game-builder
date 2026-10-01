@@ -45,7 +45,12 @@ const daytonaMock = vi.hoisted(() => {
 })
 
 const previewMock = vi.hoisted(() => {
-  const state = { value: "started" }
+  const state = {
+    value: "started",
+    // The sandbox object the mocked `daytona.get` produced, kept so tests can
+    // assert identity against it.
+    sandbox: undefined as unknown,
+  }
   const executeCommand = vi.fn(async () => ({ exitCode: 0, result: "200" }))
   const createSession = vi.fn(async () => undefined)
   const executeSessionCommand = vi.fn(
@@ -65,7 +70,12 @@ const previewMock = vi.hoisted(() => {
     start,
     process: { executeCommand, createSession, executeSessionCommand },
   })
-  const get = vi.fn(async () => makeSandbox())
+  const get = vi.fn(async () => {
+    if (!state.sandbox) {
+      state.sandbox = makeSandbox()
+    }
+    return state.sandbox
+  })
 
   return {
     state,
@@ -228,6 +238,7 @@ describe("startGameServer", () => {
   beforeEach(() => {
     vi.clearAllMocks()
     previewMock.state.value = "started"
+    previewMock.state.sandbox = undefined
     previewMock.executeCommand.mockReset()
     previewMock.executeCommand.mockResolvedValue({ exitCode: 0, result: "200" })
     previewMock.createSession.mockReset()
@@ -328,8 +339,12 @@ describe("startGameServer", () => {
       .mockResolvedValueOnce({ exitCode: 7, result: "000" })
       .mockResolvedValue({ exitCode: 0, result: "200" })
 
-    await startGameServer("sandbox-1")
+    const result = await startGameServer("sandbox-1")
 
+    // Fresh-launch path: the produced sandbox is returned unchanged, and
+    // exactly one retrieval happened — no second `daytona.get`.
+    expect(result.sandbox).toBe(previewMock.state.sandbox)
+    expect(previewMock.get).toHaveBeenCalledTimes(1)
     expect(previewMock.createSession).toHaveBeenCalledWith("game-preview")
     expect(previewMock.executeSessionCommand).toHaveBeenCalledTimes(1)
     const [sessionId, request] = previewMock.executeSessionCommand.mock.calls[0]
@@ -345,8 +360,12 @@ describe("startGameServer", () => {
   it("starts a stopped sandbox in place instead of replacing it", async () => {
     previewMock.state.value = "stopped"
 
-    await startGameServer("sandbox-1")
+    const result = await startGameServer("sandbox-1")
 
+    // The caller receives the very sandbox `daytona.get` produced so it can
+    // mint preview URLs without a second retrieval.
+    expect(result.sandbox).toBe(previewMock.state.sandbox)
+    expect(previewMock.get).toHaveBeenCalledTimes(1)
     expect(previewMock.get).toHaveBeenCalledWith("sandbox-1")
     expect(previewMock.start).toHaveBeenCalledTimes(1)
     expect(previewMock.start).toHaveBeenCalledWith(expect.any(Number))
@@ -354,8 +373,12 @@ describe("startGameServer", () => {
   })
 
   it("retrieves the existing sandbox by id and reuses a healthy preview port without launching anything", async () => {
-    await startGameServer("sandbox-1")
+    const result = await startGameServer("sandbox-1")
 
+    // Healthy-reuse path: the produced sandbox is returned unchanged, from
+    // exactly one retrieval.
+    expect(result.sandbox).toBe(previewMock.state.sandbox)
+    expect(previewMock.get).toHaveBeenCalledTimes(1)
     expect(previewMock.get).toHaveBeenCalledWith("sandbox-1")
     expect(daytonaMock.create).not.toHaveBeenCalled()
     expect(previewMock.start).not.toHaveBeenCalled()

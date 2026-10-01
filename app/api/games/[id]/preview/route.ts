@@ -3,7 +3,6 @@ import "server-only"
 import { auth } from "@clerk/nextjs/server"
 import { and, eq } from "drizzle-orm"
 
-import { daytona } from "@/lib/daytona/client"
 import { GAME_PREVIEW_PORT, startGameServer } from "@/lib/daytona/utils"
 import { games } from "@/db/schema"
 import { db } from "@/lib/db"
@@ -46,10 +45,8 @@ export async function GET(
   }
 
   try {
-    await startGameServer(sandboxId)
-
-    const preview = await daytona.get(sandboxId)
-    const signed = await preview.getSignedPreviewUrl(
+    const { sandbox } = await startGameServer(sandboxId)
+    const signed = await sandbox.getSignedPreviewUrl(
       GAME_PREVIEW_PORT,
       PREVIEW_URL_TTL_SECONDS
     )
