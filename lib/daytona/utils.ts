@@ -1,5 +1,7 @@
 import "server-only"
 
+import type { Sandbox } from "@daytona/sdk"
+
 import { eq } from "drizzle-orm"
 
 import { games } from "@/db/schema"
@@ -66,8 +68,13 @@ async function isPreviewPortHealthy(sandbox: {
  *
  * Idempotent for normal sequential calls: once the server is healthy,
  * subsequent calls return without launching anything.
+ *
+ * Resolves with the started or reused sandbox so callers can mint preview
+ * URLs from it without a second retrieval.
  */
-export async function startGameServer(sandboxId: string): Promise<void> {
+export async function startGameServer(
+  sandboxId: string
+): Promise<{ sandbox: Sandbox }> {
   const sandbox = await daytona.get(sandboxId)
 
   if (sandbox.state !== "started") {
@@ -75,7 +82,7 @@ export async function startGameServer(sandboxId: string): Promise<void> {
   }
 
   if (await isPreviewPortHealthy(sandbox)) {
-    return
+    return { sandbox }
   }
 
   // A previous run's session may linger after its server died; the Daytona
@@ -101,7 +108,7 @@ export async function startGameServer(sandboxId: string): Promise<void> {
 
   for (let attempt = 0; attempt < GAME_HEALTH_POLL_ATTEMPTS; attempt++) {
     if (await isPreviewPortHealthy(sandbox)) {
-      return
+      return { sandbox }
     }
     await sleep(GAME_HEALTH_POLL_INTERVAL_MS)
   }

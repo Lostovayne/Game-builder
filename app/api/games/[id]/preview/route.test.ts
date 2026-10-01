@@ -30,13 +30,25 @@ const daytonaMock = vi.hoisted(() => {
       url: "https://sandbox-1.example.daytona.io:8000/?signed=1",
     })
   )
-  const get = vi.fn(async () => ({ getSignedPreviewUrl }))
-  return { get, getSignedPreviewUrl }
+  return { getSignedPreviewUrl }
 })
 
 const utilsMock = vi.hoisted(() => ({
   GAME_PREVIEW_PORT: 8000,
-  startGameServer: vi.fn(async (_sandboxId: string) => undefined),
+  // Signature mirrors the real contract: the route receives the started or
+  // reused sandbox back from startGameServer.
+  startGameServer: vi.fn<
+    (sandboxId: string) => Promise<{
+      sandbox: {
+        getSignedPreviewUrl: (
+          port: number,
+          expiresInSeconds: number
+        ) => Promise<{ url: string }>
+      }
+    }>
+  >(async (_sandboxId: string) => ({
+    sandbox: { getSignedPreviewUrl: async () => ({ url: "" }) },
+  })),
 }))
 
 vi.mock("server-only", () => ({}))
@@ -60,6 +72,10 @@ describe("GET /api/games/[id]/preview", () => {
 
   it("returns a short-lived signed preview URL for the org-owned game's sandbox", async () => {
     dbMock.state.rows = [{ sandboxId: "sandbox-1" }]
+    // The URL is minted from the very sandbox startGameServer returned — the
+    // route must not perform a second retrieval.
+    const sandbox = { getSignedPreviewUrl: daytonaMock.getSignedPreviewUrl }
+    utilsMock.startGameServer.mockResolvedValue({ sandbox })
 
     const response = await GET(
       new Request("http://localhost/api"),
@@ -67,8 +83,11 @@ describe("GET /api/games/[id]/preview", () => {
     )
 
     expect(response.status).toBe(200)
-    // Exact TTL and port: explicit one-hour expiry, fixed preview port.
+    // The persisted sandbox id is what starts the server.
+    expect(utilsMock.startGameServer).toHaveBeenCalledWith("sandbox-1")
+    // Exact TTL and port, minted on the returned sandbox object.
     expect(daytonaMock.getSignedPreviewUrl).toHaveBeenCalledWith(8000, 3600)
+    expect(daytonaMock.getSignedPreviewUrl).toHaveBeenCalledTimes(1)
   })
 
   it("returns 401 without an authenticated user", async () => {
@@ -120,7 +139,7 @@ describe("GET /api/games/[id]/preview", () => {
 
     expect(response.status).toBe(404)
     expect(utilsMock.startGameServer).not.toHaveBeenCalled()
-    expect(daytonaMock.get).not.toHaveBeenCalled()
+    expect(daytonaMock.getSignedPreviewUrl).not.toHaveBeenCalled()
   })
 
   it("maps Daytona failures to 502 without leaking internal errors", async () => {
