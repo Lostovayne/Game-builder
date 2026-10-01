@@ -88,7 +88,7 @@ Tracked in #5.
 `assess` is read-only and is supposed to risk-score a candidate. On this change it was unusable for the committed range:
 
 - **No `baseRef`** → `non-zero`: _"the review assess candidate has no pending changes; already-committed work can be assessed by rerunning `gentle-ai review assess --base-ref <commit>`"_.
-- **With `baseRef`** → `schema-incompatible`, **no sanitized stderr**. Reproduced with three different values: the full 40-char parent commit `69dd356…`, the ref `main`, and the `base_tree` `f649cd2…` that this lineage's own `review.status` transition had just used. (`HEAD` is *not* in this group — see the last bullet.)
+- **With `baseRef`** → `schema-incompatible`, **no sanitized stderr**. Reproduced with three different values: the full 40-char parent commit `69dd356…`, the ref `main`, and the `base_tree` `f649cd2…` that this lineage's own `review.status` transition had just used. (`HEAD` is _not_ in this group — see the last bullet.)
 - **`baseRef` without `committedOnly: true`** → rejected up front: `Review assess baseRef requires committedOnly: true`.
 - `baseRef: "HEAD"` **validates the schema** but compares an empty range (working tree is clean), so it falls through to the same `non-zero` as the no-`baseRef` case.
 
