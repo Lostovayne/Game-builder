@@ -18,7 +18,7 @@ The preview route resolves the same sandbox twice: once inside `startGameServer`
 ## Constraints
 
 - Strict TDD (red → green); runner `npm test` (Vitest, node environment, no DOM).
-- No live Daytona calls: `DAYTONA_API_KEY` is absent, so `@/lib/daytona/client` stays mocked in tests.
+- Offline suites must never hit the network: `@/lib/daytona/client` stays mocked. Live checks run in a separate opt-in config, never from `npm test`.
 - Never create a sandbox in this path; health-check, idempotency, and session-recovery behavior stay unchanged.
 - Only the signed `url` is exposed to clients; the preview token and internal Daytona errors never leave the server.
 - Technical artifacts and code in English.
@@ -58,8 +58,45 @@ The preview route resolves the same sandbox twice: once inside `startGameServer`
 
 - Full offline verification after the warning fix: `npm test -- --run lib/daytona/utils.test.ts` 17/17; `npm test -- --run 'app/api/games/[id]/preview/route.test.ts'` 6/6; `npm test` 9 files / 91 tests; `npm run typecheck` clean; `npm run lint` clean.
 - The second `daytona.get` removal is guarded by call-count assertions, not just object identity (mutation-verified).
-- Runtime integration against live Daytona remains unverified (`DAYTONA_API_KEY` absent).
+- Runtime integration against live Daytona was verified once on 2026-10-01 (see "Live verification" below); it is not part of the automated suite.
 - Known pre-existing limits (concurrent cold-start race, aggregate health-polling timeout, health check accepts any HTTP 200) are out of scope for this refactor.
+
+## Live verification
+
+Run once against the real Daytona API with a throwaway sandbox labelled `live-verify-<ts>`; the sandbox is deleted in `afterAll` and the account is re-checked for leaks. **3/3 passed** (~7 s):
+
+| Check | Result |
+| --- | --- |
+| `startGameServer` resolves `{ sandbox }` with the retrieved id | pass |
+| In-sandbox `curl` to `127.0.0.1:8000` | HTTP **200** |
+| `getSignedPreviewUrl(8000, 3600)` on the *returned* sandbox → real `fetch` | HTTP **200**, body matched the seeded marker |
+| Second `startGameServer` call provisions nothing | 0 new sandboxes |
+| Teardown | account back to its 3 original sandboxes, 0 leaks |
+
+The suite lives in a separate config (`include: ["**/*.live.ts"]`) so `npm test` never reaches the network.
+
+### Correction: where the credentials and the URL actually live
+
+- `DAYTONA_API_KEY` **is** present in `.env.local` (68 chars, gitignored). Earlier notes claiming it was "absent" were wrong: it was absent from the *shell* environment, not from the project. Next.js loads `.env.local` automatically; ad-hoc scripts need `node --env-file=.env.local`.
+- The real signed preview URL is `https://8000-<token>.daytonaproxy01.net/` — **not** `*.daytona.io` with `?signed=<token>`. The **token is embedded in the hostname**, not in the query string. This is why returning only `.url` to clients is correct: the credential is already inside the URL, and `.token` never needs to leave the server.
+- Consequence for tests: an SSRF allowlist written from a test mock will not match production. Allowlist the observed domain, not the one you assumed.
+
+## Tooling limitation: `gentle-ai review assess` cannot score committed work
+
+Tracked in #5.
+
+`assess` is read-only and is supposed to risk-score a candidate. On this change it was unusable for the committed range:
+
+- **No `baseRef`** → `non-zero`: *"the review assess candidate has no pending changes; already-committed work can be assessed by rerunning `gentle-ai review assess --base-ref <commit>`"*.
+- **With `baseRef`** → `schema-incompatible`, **no sanitized stderr**. Tried and rejected: the full 40-char parent commit `69dd356…`, the ref `main`, `HEAD`, and the `base_tree` `f649cd2…` that this lineage's own `review.status` transition had just used.
+- **`baseRef` without `committedOnly: true`** → rejected up front: `Review assess baseRef requires committedOnly: true`.
+- `baseRef: "HEAD"` validates but compares an empty range (working tree is clean).
+
+So every documented path into the committed-range branch fails, and the failure carries no diagnostic to act on.
+
+**Workaround used:** omit `baseRef` and pass only `{writerModelId, writerEffort, nativeReviewOutcome: "closed"}`. That returns `outcome_source: explicit`, `writerProfile: large`, `risk: unassessable`. The contract then requires `unassessable` be verified exactly like `high`, which forced a fresh independent verifier — that verifier passed, so the review cycle closed correctly despite the broken tool.
+
+**Net effect:** no code defect, but `assess` silently degrades to `unassessable` for any already-committed work, which pushes every committed candidate onto the more expensive independent-verification path.
 
 ## Verification and commit
 
