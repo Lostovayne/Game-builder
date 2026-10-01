@@ -63,23 +63,23 @@ The preview route resolves the same sandbox twice: once inside `startGameServer`
 
 ## Live verification
 
-Run once against the real Daytona API with a throwaway sandbox labelled `live-verify-<ts>`; the sandbox is deleted in `afterAll` and the account is re-checked for leaks. **3/3 passed** (~7 s):
+Run once against the real Daytona API with a throwaway sandbox labelled `live-verify-<ts>`; the sandbox is deleted in `afterAll` and the account is re-checked for leaks. **3 tests passed** (~7 s). The table below lists every assertion, which is more rows than tests — teardown is an `afterAll` check, not a test:
 
-| Check | Result |
-| --- | --- |
-| `startGameServer` resolves `{ sandbox }` with the retrieved id | pass |
-| In-sandbox `curl` to `127.0.0.1:8000` | HTTP **200** |
-| `getSignedPreviewUrl(8000, 3600)` on the *returned* sandbox → real `fetch` | HTTP **200**, body matched the seeded marker |
-| Second `startGameServer` call provisions nothing | 0 new sandboxes |
-| Teardown | account back to its 3 original sandboxes, 0 leaks |
+| Check                                                                      | Result                                            |
+| -------------------------------------------------------------------------- | ------------------------------------------------- |
+| `startGameServer` resolves `{ sandbox }` with the retrieved id             | pass                                              |
+| In-sandbox `curl` to `127.0.0.1:8000`                                      | HTTP **200**                                      |
+| `getSignedPreviewUrl(8000, 3600)` on the _returned_ sandbox → real `fetch` | HTTP **200**, body matched the seeded marker      |
+| Second `startGameServer` call provisions nothing                           | 0 new sandboxes                                   |
+| Teardown                                                                   | account back to its 3 original sandboxes, 0 leaks |
 
 The suite lives in a separate config (`include: ["**/*.live.ts"]`) so `npm test` never reaches the network.
 
 ### Correction: where the credentials and the URL actually live
 
-- `DAYTONA_API_KEY` **is** present in `.env.local` (68 chars, gitignored). Earlier notes claiming it was "absent" were wrong: it was absent from the *shell* environment, not from the project. Next.js loads `.env.local` automatically; ad-hoc scripts need `node --env-file=.env.local`.
-- The real signed preview URL is `https://8000-<token>.daytonaproxy01.net/` — **not** `*.daytona.io` with `?signed=<token>`. The **token is embedded in the hostname**, not in the query string. This is why returning only `.url` to clients is correct: the credential is already inside the URL, and `.token` never needs to leave the server.
-- Consequence for tests: an SSRF allowlist written from a test mock will not match production. Allowlist the observed domain, not the one you assumed.
+- `DAYTONA_API_KEY` **is** present in `.env.local` (68 chars, gitignored). Earlier notes claiming it was "absent" were wrong: it was absent from the _shell_ environment, not from the project. Next.js loads `.env.local` automatically; ad-hoc scripts need `node --env-file=.env.local`.
+- The signed preview URL shape is `https://{port}-{token}.{daytonaProxyDomain}` per the installed skill guide (`skills/daytona/references/typescript-sdk/preview.md`), and `SignedPortPreviewUrl` only types `url` as a bare `string` — the SDK constrains nothing. Observed live on 2026-10-01: `https://8000-<token>.daytonaproxy01.net/`, i.e. the **token sits in the hostname**, not in a `?signed=` query. That is **not** `*.daytona.io`, so an allowlist written from a test mock will not match production.
+- The specific domain is an empirical observation, not something derivable from the SDK types or the guide — re-check it if Daytona ever changes the proxy host. It is why returning only `.url` to clients is correct: the credential is already inside the URL, and `.token` never needs to leave the server.
 
 ## Tooling limitation: `gentle-ai review assess` cannot score committed work
 
@@ -87,14 +87,14 @@ Tracked in #5.
 
 `assess` is read-only and is supposed to risk-score a candidate. On this change it was unusable for the committed range:
 
-- **No `baseRef`** → `non-zero`: *"the review assess candidate has no pending changes; already-committed work can be assessed by rerunning `gentle-ai review assess --base-ref <commit>`"*.
-- **With `baseRef`** → `schema-incompatible`, **no sanitized stderr**. Tried and rejected: the full 40-char parent commit `69dd356…`, the ref `main`, `HEAD`, and the `base_tree` `f649cd2…` that this lineage's own `review.status` transition had just used.
+- **No `baseRef`** → `non-zero`: _"the review assess candidate has no pending changes; already-committed work can be assessed by rerunning `gentle-ai review assess --base-ref <commit>`"_.
+- **With `baseRef`** → `schema-incompatible`, **no sanitized stderr**. Reproduced with three different values: the full 40-char parent commit `69dd356…`, the ref `main`, and the `base_tree` `f649cd2…` that this lineage's own `review.status` transition had just used. (`HEAD` is *not* in this group — see the last bullet.)
 - **`baseRef` without `committedOnly: true`** → rejected up front: `Review assess baseRef requires committedOnly: true`.
-- `baseRef: "HEAD"` validates but compares an empty range (working tree is clean).
+- `baseRef: "HEAD"` **validates the schema** but compares an empty range (working tree is clean), so it falls through to the same `non-zero` as the no-`baseRef` case.
 
 So every documented path into the committed-range branch fails, and the failure carries no diagnostic to act on.
 
-**Workaround used:** omit `baseRef` and pass only `{writerModelId, writerEffort, nativeReviewOutcome: "closed"}`. That returns `outcome_source: explicit`, `writerProfile: large`, `risk: unassessable`. The contract then requires `unassessable` be verified exactly like `high`, which forced a fresh independent verifier — that verifier passed, so the review cycle closed correctly despite the broken tool.
+**Workaround used:** omit `baseRef` and pass only `{writerModelId, writerEffort, nativeReviewOutcome: "closed"}`. That returns `outcome_source: explicit`, `writerProfile: large`, `risk: unassessable`. The contract then requires `unassessable` be verified exactly like `high`, so **each cycle needs a fresh independent verifier**. The first such verifier passed; the one raised after the documentation commit returned `fail` on three doc-accuracy findings, which are corrected above.
 
 **Net effect:** no code defect, but `assess` silently degrades to `unassessable` for any already-committed work, which pushes every committed candidate onto the more expensive independent-verification path.
 
