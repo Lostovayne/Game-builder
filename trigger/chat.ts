@@ -1,5 +1,8 @@
 import { chat } from "@trigger.dev/sdk/ai"
 
+// System prompt composed in lib/games/instructions: product workflow
+// guidance first, Daytona runtime facts second, joined per section.
+import { gameInstructions } from "@/lib/games/instructions"
 import { getChatModel } from "@/lib/ai"
 import { readGameTranscriptRow } from "@/lib/chat/game-rows"
 import { shouldSeedHistory } from "@/lib/chat/seed"
@@ -60,7 +63,7 @@ export const gameChat = chat.agent({
     assertTranscriptNotEmpty(messages)
     return streamText({
       model: getChatModel(),
-      system: "You are a helpful assistant.",
+      system: gameInstructions.join("\n\n"),
       messages,
       // Correct way to minimize thinking on Gemini 3 in AI SDK v5+:
       // `reasoning: "none"` disables the reasoning effort, and the explicit
