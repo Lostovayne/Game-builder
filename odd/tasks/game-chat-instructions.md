@@ -49,7 +49,7 @@ Allowed files only:
 - [x] T2 — `lib/games/instructions/{workflow,runtime,index}.ts` with test-first `index.test.ts` (RED → GREEN) — route: delegated writer (`gentle-ai-worker`, `muqczyml-1-52ij`) — outcome: RED observed (`Cannot find module './index'`), GREEN 4/4
 - [x] T3 — Wire `gameInstructions` into `trigger/chat.ts` `system` (same writer) — outcome: `system: gameInstructions.join("\n\n")`, other streamText options untouched (parent diff spot check)
 - [x] T4 — Verification: `npm test`, `npm run typecheck`, `npm run lint` — route: delegated verifier (`muqd6mij-2-3ca0`, delta re-run `muqd972d-3-97q9`) — outcome: all pass; one factuality finding fixed (sandbox "exactly one" wording overstated the non-atomic check-create-update sequence)
-- [ ] T5 — Work-unit commit on feature branch (branch first; user decides push/PR) — pending user decision
+- [x] T5 — Work-unit commit on feature branch (branch first; user decides push/PR) — outcome: `fe35522 feat(chat): compose game system prompt from lib/games/instructions` (6 files, 168+/1−; `package-lock.json` deliberately left out of the commit)
 
 ## Authorized Scope
 
@@ -83,12 +83,14 @@ Files listed under Scope only. No other source files. No push/PR unless the user
 - Fix: `runtime.ts` SANDBOX LIFECYCLE reworded to "bound to one sandbox … persisted id reused, never re-provisioned" (matches `createGameSandbox` at `lib/daytona/utils.ts:131-159`).
 - Delta verifier (`muqd972d-3-97q9`): `npm test` 10 files / 95 tests pass, typecheck clean, lint clean; wording confirmed accurate.
 - Parent spot check: full diff reviewed — placeholder gone, `reasoning`/`providerOptions`/`abortSignal`/hooks untouched, only allowed surfaces changed (`package-lock.json` dirty pre-existing, this doc expected).
+- Native RDD review (user chose commit-then-review to keep the 10.4k-line lockfile diff out of the candidate): lineage `review-b5201599cda35005`, committed range `b50a27c..fe35522` (6 paths, 169 lines, tier medium, lens `review-reliability`), forecast `transport pi_host_relay / model_runs 1 / lenses [review-reliability]`, result **approved**, acknowledgement burned (`gentle-ai.review-acknowledged/v1`). Delivery remains ordinary repo policy (push/PR = user decision).
 
 ## Progress Log
 
 - 2026-09-24: Doc created after exploring `trigger/chat.ts`, `lib/daytona/utils.ts`, `lib/ai.ts`, README and prior Daytona feature docs. Classified substantial (5 files, test-first). Branch `feat/game-chat-instructions` created from `main`.
 - 2026-09-24: T1–T3 implemented by delegated writer (`muqczyml-1-52ij`); prompt prose in English, no tool capabilities claimed (agent has no tools yet).
-- 2026-09-24: T4 verified by fresh verifier; sole factuality finding (sandbox count wording) fixed and re-verified green. T5 (work-unit commit) pending — commits require an explicit user request.
+- 2026-09-24: T4 verified by fresh verifier; sole factuality finding (sandbox count wording) fixed and re-verified green.
+- 2026-09-24: User authorized commit + range review. T5 committed as `fe35522`; native review approved and acknowledged (lineage `review-b5201599cda35005`). All tasks closed; push/PR still user-owned.
 
 ## Engram Mirror
 
