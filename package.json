@@ -15,7 +15,7 @@
     "test:watch": "vitest",
     "db:studio": "drizzle-kit studio",
     "db:push": "drizzle-kit push",
-    "trigger:dev": "trigger dev",
+    "trigger:dev": "cross-env NODE_OPTIONS=--no-webstorage trigger dev",
     "trigger:deploy": "trigger deploy"
   },
   "dependencies": {
@@ -30,7 +30,7 @@
     "@neon/env": "^1.4.4",
     "@neondatabase/serverless": "^1.1.0",
     "@shadcn/react": "^0.3.1",
-    "@trigger.dev/sdk": "^4.7.0",
+    "@trigger.dev/sdk": "4.7.0",
     "ai": "^7.0.113",
     "class-variance-authority": "^0.7.1",
     "cmdk": "^1.1.1",
@@ -56,11 +56,12 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.3.3",
-    "@trigger.dev/build": "^4.7.0",
+    "@trigger.dev/build": "4.7.0",
     "@types/node": "^26.6.2",
     "@types/pg": "^8.23.1",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
+    "cross-env": "^10.1.0",
     "drizzle-kit": "^0.31.11",
     "oxlint": "^1.86.0",
     "prettier": "^3.9.9",
