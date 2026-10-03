@@ -1,0 +1,15 @@
+allowBuilds:
+  '@depot/cli': true
+  core-js: true
+  es5-ext: true
+  esbuild: true
+  protobufjs: true
+minimumReleaseAgeExclude:
+  - '@trigger.dev/build@4.7.2'
+  - '@trigger.dev/core@4.7.2'
+  - '@trigger.dev/schema-to-json@4.7.2'
+  - trigger.dev@4.7.2
+  - '@trigger.dev/sdk@4.7.2'
+  - '@neon/env@1.5.0'
+  - lucide-react@1.50.0
+  - react-resizable-panels@4.14.2
