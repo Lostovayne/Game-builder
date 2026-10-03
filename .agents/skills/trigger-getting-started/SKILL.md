@@ -29,7 +29,7 @@ The fastest path is the CLI's own wizard, which performs every mechanical step b
 and also offers to install the MCP server and these agent skills:
 
 ```bash
-npx trigger.dev@latest init
+pnpm dlx trigger.dev@latest init
 ```
 
 Prefer `init` when you can. Do the manual steps further down when `init` does not fit
@@ -41,14 +41,14 @@ The CLI can start account creation, but a person must verify their email and aut
 access. In an agent session, start a resumable login instead of blocking on the CLI:
 
 ```bash
-npx trigger.dev@latest login --email user@example.com --name "Alex Smith" --no-browser --no-wait
+pnpm dlx trigger.dev@latest login --email user@example.com --name "Alex Smith" --no-browser --no-wait
 ```
 
 Give the printed URL to the user and ask them to complete sign-in and authorization.
 After they confirm, resume the saved authorization:
 
 ```bash
-npx trigger.dev@latest login --no-browser
+pnpm dlx trigger.dev@latest login --no-browser
 ```
 
 Do not create accounts or approve CLI access on the user's behalf. Once authenticated,
@@ -63,7 +63,7 @@ create the organization in its dashboard first.
 For an interactive terminal:
 
 ```bash
-npx trigger.dev@latest login
+pnpm dlx trigger.dev@latest login
 ```
 
 For an agent or headless terminal, use the resumable flow described above. Add
@@ -76,8 +76,8 @@ Pin both to the same version as the `trigger.dev` CLI you run; the CLI warns on 
 mismatch during `dev`/`deploy`.
 
 ```bash
-npm add @trigger.dev/sdk@latest
-npm add --save-dev @trigger.dev/build@latest
+pnpm add @trigger.dev/sdk@latest
+pnpm add --save-dev @trigger.dev/build@latest
 ```
 
 ### 3. Write `trigger.config.ts`
@@ -149,7 +149,7 @@ TRIGGER_SECRET_KEY=tr_dev_sk_xxxxxxxx
 ### 7. Run the dev server
 
 ```bash
-npx trigger.dev@latest dev
+pnpm dlx trigger.dev@latest dev
 ```
 
 Leave it running. Tasks register with the dashboard, where the user can fire a test run
@@ -188,7 +188,7 @@ See the manual setup docs for full Turborepo examples before scaffolding either.
 
 2. **Mismatched CLI and SDK versions.** A `trigger.dev` CLI on a different major than
    `@trigger.dev/sdk` breaks dev/deploy.
-   - Wrong: `npx trigger.dev@latest dev` against an old pinned SDK.
+   - Wrong: `pnpm dlx trigger.dev@latest dev` against an old pinned SDK.
    - Correct: keep `trigger.dev`, `@trigger.dev/sdk`, and `@trigger.dev/build` on the same version.
 
 3. **Importing from `@trigger.dev/sdk/v3` or using `client.defineJob()`.** Both are old.

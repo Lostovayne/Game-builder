@@ -18,7 +18,7 @@ The new game is inserted with a provisional title and navigated to immediately. 
 ## Constraints
 
 - Feature branch: `fix/game-title-refresh-and-chat-preload` from `main`.
-- TDD: enabled; test runner `npm test` (Vitest).
+- TDD: enabled; test runner `pnpm test` (Vitest).
 - User authorized a local commit, merge to `main`, push to `origin/main`, and deletion of the temporary branch after testing.
 - Prior baseline is historical (2026-09-25): queue wait 16.4–22.5s in two samples, model-to-first-token 3.5–5s, other queue samples 0.6–32.1s. Re-measure before claiming a current root cause or improvement.
 - Trigger.dev SDK is 4.6.4; Next.js is 16.3.4.
@@ -55,7 +55,7 @@ User chose low-cost on-demand preload/measurement only. Do not enable persistent
 - Created branch `fix/game-title-refresh-and-chat-preload` from clean `main` at `4ede982`.
 - User authorized measurement/on-demand preload only and declined persistent warm capacity.
 - T1 implemented: org-scoped title-only action querying only `games.title`, exact shared provisional-title derivation/guard, bounded and cancellable poll, and one `router.refresh()` when the refined title is observed. Poll is skipped for already-final titles and after it refreshes once.
-- Title and preload policy tests pass 32/32; `npm run typecheck` passed clean after final implementation. Independent T1 verification passed 28/28 before preload was added.
+- Title and preload policy tests pass 32/32; `pnpm run typecheck` passed clean after final implementation. Independent T1 verification passed 28/28 before preload was added.
 - Fresh read-only Trigger API sample for three recent runs shows highly variable queue waits: 19.219s, 0.742s, and 113.913s. The latest run remained EXECUTING in the listing. These data confirm severe queue variability but do not establish a representative average or model-to-first-token duration.
 - `transport.preload(gameId)` is wired before auto-send only for exactly one seeded user message with no hydrated session. Trigger SDK 4.6.4 client source deduplicates per-chat in-flight session starts. Runtime duplicate-send/latency effect remains unverified.
 - No persistent worker/warm capacity enabled; no commit yet.
@@ -63,7 +63,7 @@ User chose low-cost on-demand preload/measurement only. Do not enable persistent
 ## Runtime / commit limits
 
 - User performed live testing and confirmed the title renders correctly and startup wait feels somewhat improved; no exact before/after values were captured.
-- Automated verification: 32 pure Vitest tests pass, `npm run typecheck` passes, `git diff --check` passes; independent read-only review confirmed title polling authorization, guard, bounds, and SDK preload dedup semantics.
+- Automated verification: 32 pure Vitest tests pass, `pnpm run typecheck` passes, `git diff --check` passes; independent read-only review confirmed title polling authorization, guard, bounds, and SDK preload dedup semantics.
 - Fresh API queue samples: run-created→started of 19.219s, 0.742s, 113.913s. Only three observations; no first-chunk timestamps were available, so no numeric preload improvement is claimed.
 - Native RDD inspect was previously attempted and returned blocked `committed-only-invalid`, mutation_performed=false. No review lineage was started. RDD assessment remains unavailable, not low.
 - User authorized committing, merging to `main`, pushing `main`, and deleting the provisional branch.

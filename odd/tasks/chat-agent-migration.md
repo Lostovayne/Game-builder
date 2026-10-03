@@ -76,7 +76,7 @@ Route: **delegated direct** (one writer). Triggers: mapping (4+ files) + write r
 - `bun run lint`
 - `bun run test`
 - `bun run db:push` (schema; documented dev workflow — mutates the Neon dev branch)
-- Worker compile/boot: `npx trigger.dev@latest dev` (bounded attempt) — proves `server-only` resolves, env loads, and the agent registers. If it needs interactive login or fails for environmental reasons, report it honestly as blocked, never as success.
+- Worker compile/boot: `pnpm dlx trigger.dev@latest dev` (bounded attempt) — proves `server-only` resolves, env loads, and the agent registers. If it needs interactive login or fails for environmental reasons, report it honestly as blocked, never as success.
 
 ## Verification evidence (observed)
 
@@ -86,7 +86,7 @@ Route: **delegated direct** (one writer). Triggers: mapping (4+ files) + write r
 | `bun run lint` | `oxlint` → one error, `trigger/example.ts:7:24 no-explicit-any`, exit 1. **Pre-existing**: that file is unmodified vs `main` (confirmed via `git diff --name-only main -- trigger/example.ts` → empty) and the project forbids editing it. |
 | `bun run test` | `vitest run` → 1 test file, 3 tests passed, 334ms |
 | `bun run db:push` | `drizzle-kit push` → `[✓] Changes applied` (added `games.last_event_id` to the Neon dev branch) |
-| `npx trigger.dev@latest dev` (90s bound) | Worker built and reached `Local worker ready on branch: default [node-24]` → proves `server-only` resolves via `build.conditions: ["react-server"]`, the agent registers, and env loads. Printed `[chat.agent] hydrateMessages on "game-chat" is deprecated` — the expected one-time warning from design decision 3. Exit 124 = the timeout bound, not a failure. |
+| `pnpm dlx trigger.dev@latest dev` (90s bound) | Worker built and reached `Local worker ready on branch: default [node-24]` → proves `server-only` resolves via `build.conditions: ["react-server"]`, the agent registers, and env loads. Printed `[chat.agent] hydrateMessages on "game-chat" is deprecated` — the expected one-time warning from design decision 3. Exit 124 = the timeout bound, not a failure. |
 
 ## Deviations
 - `app/(app)/games/[id]/page.tsx` now declares `params: Promise<{ id: string }>` instead of `PageProps<"/games/[id]">`. Deleting `app/api/chat/route.ts` left a stale `.next/types` reference (`Cannot find module '../../app/api/chat/route.js'`); the generated `PageProps` global only exists once `.next/types` regenerates, so an explicit, type-safe form removes the dependency on build cache. Behavior unchanged; this was the app's only `PageProps` usage.

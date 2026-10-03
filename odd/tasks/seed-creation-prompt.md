@@ -37,7 +37,7 @@ Allowed files only:
 - [x] T3 — Game page: stop reading `searchParams.message`; stop passing `initialMessage` — route: delegated (same writer) — outcome: done
 - [x] T4 — `ChatThread`: remove `initialMessage` prop/`useRouter` URL cleanup; add single-message `regenerate()` effect with StrictMode-safe bounded retries — route: delegated (same writer) — outcome: done
 - [x] T5 — README flow diagram reflects seed + clean redirect — route: delegated (same writer) — outcome: done
-- [x] T6 — Verification: `npm run typecheck` and `npm run lint` — record observed output; any failing required command forces partial — route: parent (per-action) — outcome: both pass (writer + parent re-run)
+- [x] T6 — Verification: `pnpm run typecheck` and `pnpm run lint` — record observed output; any failing required command forces partial — route: parent (per-action) — outcome: both pass (writer + parent re-run)
 
 ## Authorized Scope
 Files listed under Scope only. No other source files. No dependency changes. No push/PR unless the user asks.
@@ -52,8 +52,8 @@ Files listed under Scope only. No other source files. No dependency changes. No 
 - `typecheck` and `lint` pass.
 
 ## Applicable Checks
-- `npm run typecheck` (`tsc --noEmit`)
-- `npm run lint` (`oxlint`)
+- `pnpm run typecheck` (`tsc --noEmit`)
+- `pnpm run lint` (`oxlint`)
 
 ## TDD
 - Mode: **off** (source: no `test` script / no test runner in `package.json`; ordinary functional checks only).
@@ -61,8 +61,8 @@ Files listed under Scope only. No other source files. No dependency changes. No 
 - Focused checks: typecheck + lint + manual create flow if a dev server is available.
 
 ## Verification Evidence
-- `npm run typecheck` (`tsc --noEmit`): pass, exit 0 (writer + parent re-run)
-- `npm run lint` (`oxlint`): pass, exit 0 (writer + parent re-run)
+- `pnpm run typecheck` (`tsc --noEmit`): pass, exit 0 (writer + parent re-run)
+- `pnpm run lint` (`oxlint`): pass, exit 0 (writer + parent re-run)
 - Parent spot check: full diff reviewed; `prompt` in scope in `createGame`; seed shape, clean redirect, no `?message=` residue, bounded regenerate effect all match acceptance criteria.
 
 ## Progress Log

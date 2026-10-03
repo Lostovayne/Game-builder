@@ -17,8 +17,8 @@ The preview route resolves the same sandbox twice: once inside `startGameServer`
 
 ## Constraints
 
-- Strict TDD (red → green); runner `npm test` (Vitest, node environment, no DOM).
-- Offline suites must never hit the network: `@/lib/daytona/client` stays mocked. Live checks run in a separate opt-in config, never from `npm test`.
+- Strict TDD (red → green); runner `pnpm test` (Vitest, node environment, no DOM).
+- Offline suites must never hit the network: `@/lib/daytona/client` stays mocked. Live checks run in a separate opt-in config, never from `pnpm test`.
 - Never create a sandbox in this path; health-check, idempotency, and session-recovery behavior stay unchanged.
 - Only the signed `url` is exposed to clients; the preview token and internal Daytona errors never leave the server.
 - Technical artifacts and code in English.
@@ -34,7 +34,7 @@ The preview route resolves the same sandbox twice: once inside `startGameServer`
 ## Tasks
 
 - [x] T1 — Change `startGameServer` to return `{ sandbox }` on all success paths, with a typed return of the Daytona `Sandbox`, and cover the contract offline (returned object exposes the same sandbox `daytona.get` produced, across reuse, launch, and restart paths). Route: delegated writer, strict TDD.
-  - RED: `expect(result.sandbox).toBe(previewMock.state.sandbox)` failed in 3 tests with `TypeError: Cannot read properties of undefined (reading 'sandbox')` — `npm test -- --run lib/daytona/utils.test.ts`: 3 failed / 14 passed (17). GREEN: 17/17.
+  - RED: `expect(result.sandbox).toBe(previewMock.state.sandbox)` failed in 3 tests with `TypeError: Cannot read properties of undefined (reading 'sandbox')` — `pnpm test --run lib/daytona/utils.test.ts`: 3 failed / 14 passed (17). GREEN: 17/17.
   - WARNING from fresh verification (resolved): identity assertions compared against a cached mock sandbox, so a second `daytona.get` returning that same cached object would have passed. Fixed by asserting `previewMock.get` `toHaveBeenCalledTimes(1)` on all three success paths. Proven by temporary mutation (re-fetch on the reuse path): the call-count assertions failed in 2 tests while the identity assertion did not — i.e. the new assertion is the one that catches the defect. Mutation reverted; no residue.
 - [x] T2 — Mint the signed preview URL in `app/api/games/[id]/preview/route.ts` from the sandbox returned by `startGameServer`, drop the redundant `daytona.get` and the unused client import, and update the route tests so the URL-minting assertion targets the returned sandbox. Route: delegated writer, strict TDD.
   - RED: success test received 502 instead of 200 (`daytona.get` not provided by the mock) — route suite: 1 failed / 5 passed (6). GREEN: 6/6.
@@ -44,19 +44,19 @@ The preview route resolves the same sandbox twice: once inside `startGameServer`
 - `startGameServer` resolves to `{ sandbox }` on every success path and still throws on failure paths.
 - The route never calls `daytona.get`; the signed URL is minted from the sandbox `startGameServer` returned.
 - API contract unchanged: `GET /api/games/[id]/preview` → 200 `{ url }` | 401 | 404 | 502.
-- Checks: `npm test`, `npm run typecheck`, `npm run lint`.
+- Checks: `pnpm test`, `pnpm run typecheck`, `pnpm run lint`.
 
 ## Progress
 
 - Planning created before source changes.
 - T1 and T2 implemented by a delegated writer under strict TDD; both reached green with recorded RED evidence.
 - Fresh-context verification (`gentle-ai-verify`) initially returned **fail** on one WARNING (weak identity assertion, above). The warning was addressed and re-proven by mutation testing.
-- Verification rerun after the fix: `npm test` 9 files / 91 tests passed, `npm run typecheck` clean, `npm run lint` clean.
+- Verification rerun after the fix: `pnpm test` 9 files / 91 tests passed, `pnpm run typecheck` clean, `pnpm run lint` clean.
 - Diff scope confirmed: only the four in-scope files changed, plus this document (untracked). 64 insertions / 18 deletions across the four tracked files.
 
 ## Verification and limits
 
-- Full offline verification after the warning fix: `npm test -- --run lib/daytona/utils.test.ts` 17/17; `npm test -- --run 'app/api/games/[id]/preview/route.test.ts'` 6/6; `npm test` 9 files / 91 tests; `npm run typecheck` clean; `npm run lint` clean.
+- Full offline verification after the warning fix: `pnpm test --run lib/daytona/utils.test.ts` 17/17; `pnpm test --run 'app/api/games/[id]/preview/route.test.ts'` 6/6; `pnpm test` 9 files / 91 tests; `pnpm run typecheck` clean; `pnpm run lint` clean.
 - The second `daytona.get` removal is guarded by call-count assertions, not just object identity (mutation-verified).
 - Runtime integration against live Daytona was verified once on 2026-10-01 (see "Live verification" below); it is not part of the automated suite.
 - Known pre-existing limits (concurrent cold-start race, aggregate health-polling timeout, health check accepts any HTTP 200) are out of scope for this refactor.
@@ -73,7 +73,7 @@ Run once against the real Daytona API with a throwaway sandbox labelled `live-ve
 | Second `startGameServer` call provisions nothing                           | 0 new sandboxes                                   |
 | Teardown                                                                   | account back to its 3 original sandboxes, 0 leaks |
 
-The suite lives in a separate config (`include: ["**/*.live.ts"]`) so `npm test` never reaches the network.
+The suite lives in a separate config (`include: ["**/*.live.ts"]`) so `pnpm test` never reaches the network.
 
 ### Correction: where the credentials and the URL actually live
 
@@ -106,8 +106,8 @@ So every documented path into the committed-range branch fails, and the failure 
 - RDD review executed on this candidate: lineage `review-1ea7a59a39c8741e`, target `sha256:362ac31a…`, tier `medium` (trigger: `executable_change` in `app/api/games/[id]/preview/route.test.ts`), lens `review-reliability` (1 model run via pi host relay).
 - Outcome: **approved** → acknowledged (`native-approved-acknowledgement-completed`, authority `burned`, burn evidence `gentle-ai.review-acknowledged/v1`). Delivery remains ordinary repository policy.
 - Read-only `assess` after the acknowledgement returned `risk: unassessable` with `nativeReviewOutcome: closed` (`outcome_source: explicit`), `writerProfile: large` — the failure was a bookkeeping error about untracked files (only this document is untracked), not a code finding. Per contract, `unassessable` is verified exactly like `high`, so an independent fresh-context verifier was run as the separate check.
-- Fresh-context independent verification (final, post-RDD): `npm test` 9 files / 91 tests passed, `npm run typecheck` clean, `npm run lint` clean, scope confirmed (4 tracked files, 64 insertions / 18 deletions, plus the untracked doc).
+- Fresh-context independent verification (final, post-RDD): `pnpm test` 9 files / 91 tests passed, `pnpm run typecheck` clean, `pnpm run lint` clean, scope confirmed (4 tracked files, 64 insertions / 18 deletions, plus the untracked doc).
   - Verifier confirmed independently: two explicit success returns both yielding `{ sandbox }`, no throw path changed, `daytona.create` never called, `get` `toHaveBeenCalledTimes(1)` on all three success paths (a duplicate retrieval fails even against the cached mock), route pins `(8000, 3600)` on the returned sandbox, 401/404 precede any Daytona access, no `MUTATION` residue, 502 body carries no internal error text.
   - Sole WARNING (non-blocking): `route.ts:58` logs `error instanceof Error ? error.message : error`, so a thrown non-`Error` value is logged raw rather than its `.message`. This line is byte-identical to `HEAD` — it is pre-existing, outside this refactor's diff, and the response body still returns only the generic 502 text. Recorded as a pre-existing nit, not a defect of this change.
 - The verifier could not write its Engram save: Engram reported multiple active runtime sessions for this project and directory (same known ambiguity as before; `mem_doctor` reports 0 warnings at parent level). The finding was recorded by the orchestrator instead.
-- **Commit authorized and created.** Branch `refactor/preview-sandbox-return` (cut from `main`), commit `bfbec34` `refactor(daytona): return sandbox from startGameServer` — 5 files, 137 insertions / 18 deletions (4 in-scope files plus this document). Pre-commit verification on the committed tree: `npm test` 9 files / 91 tests, `npm run typecheck` clean, `npm run lint` clean. No push and no PR were authorized; delivery remains local.
+- **Commit authorized and created.** Branch `refactor/preview-sandbox-return` (cut from `main`), commit `bfbec34` `refactor(daytona): return sandbox from startGameServer` — 5 files, 137 insertions / 18 deletions (4 in-scope files plus this document). Pre-commit verification on the committed tree: `pnpm test` 9 files / 91 tests, `pnpm run typecheck` clean, `pnpm run lint` clean. No push and no PR were authorized; delivery remains local.

@@ -2,7 +2,7 @@
 
 ## Objective
 
-Give the game screen a single client boundary (`game-chat`) that renders the chat thread and a placeholder game preview inside resizable panels, and clear the two standing `npm run lint` findings surfaced while verifying it.
+Give the game screen a single client boundary (`game-chat`) that renders the chat thread and a placeholder game preview inside resizable panels, and clear the two standing `pnpm run lint` findings surfaced while verifying it.
 
 ## Problem and rationale
 
@@ -22,7 +22,7 @@ Out of scope: the real game preview renderer, persisted panel layout, and any `C
 
 - Feature branch: `feat/game-chat-split` from `main` at `bc18204`.
 - Work-unit commits with Conventional Commit messages.
-- TDD enabled; runner `npm test` (Vitest). Vitest runs with `environment: "node"` and no DOM test library is installed, so coverage targets extracted pure logic rather than React hooks.
+- TDD enabled; runner `pnpm test` (Vitest). Vitest runs with `environment: "node"` and no DOM test library is installed, so coverage targets extracted pure logic rather than React hooks.
 - `react-resizable-panels` is 4.13.3 (v4 API: `id`, `defaultSize`, `minSize`, `orientation`).
 - Do not commit anything beyond the work units listed here without asking.
 
@@ -32,13 +32,13 @@ Out of scope: the real game preview renderer, persisted panel layout, and any `C
 - [x] T2 — Add the `ChatPreview` placeholder rendering exactly one paragraph.
 - [x] T3 — Remove the unused `trigger/example.ts` scaffold.
 - [x] T4 — Replace `set-state-in-effect` in `useProgressiveStatus` with render-phase state adjustment and pure helpers in `lib/chat/progressive-status.ts` with tests.
-- [x] T5 — Run `npm test`, `npm run lint`, `npm run typecheck` and record the commit ids below.
+- [x] T5 — Run `pnpm test`, `pnpm run lint`, `pnpm run typecheck` and record the commit ids below.
 
 ## Acceptance criteria
 
 - The game page renders chat and preview inside resizable panels behind one client boundary.
-- `npm run lint` reports zero findings.
-- `npm test` and `npm run typecheck` pass.
+- `pnpm run lint` reports zero findings.
+- `pnpm test` and `pnpm run typecheck` pass.
 - Each work unit is a separate Conventional Commit on the feature branch, and their ids are recorded here as evidence.
 
 ## Exploration evidence
@@ -56,7 +56,7 @@ None. The preview panel is a placeholder paragraph as requested; its real render
 - Branch `feat/game-chat-split` created from `main` at `bc18204`.
 - T1/T2 implemented, typechecked and approved by the native review (lineage `review-35e86849a122930d`, lens `review-reliability`, no findings, authority burned).
 - T3/T4 implemented test-first: the failing test landed before `lib/chat/progressive-status.ts`, and `useProgressiveStatus` became a thin timer wrapper over the pure helpers.
-- T5 verification after the final implementation: `npm test` 72/72 across 7 files (4 new), `npm run lint` 0 findings, `npm run typecheck` clean.
+- T5 verification after the final implementation: `pnpm test` 72/72 across 7 files (4 new), `pnpm run lint` 0 findings, `pnpm run typecheck` clean.
 - The native review for the T3/T4 candidate was declined at consent (candidate-scoped, `lineage_created: false`), so that slice ships without native review. A decline is candidate-scoped and is not the review kill switch.
 
 ## Evidence

@@ -39,8 +39,8 @@ User-authorized fix for chat scroll behavior described 2026-09-17. TDD: off (no 
 - Branch: `fix/chat-scroll-stick-to-bottom` (from `main`).
 
 ## Verification evidence
-- `npm run typecheck` (tsc --noEmit): pass, 2026-09-17.
-- `npm run lint` (oxlint): pass, 2026-09-17.
+- `pnpm run typecheck` (tsc --noEmit): pass, 2026-09-17.
+- `pnpm run lint` (oxlint): pass, 2026-09-17.
 - Manual browser check: pending.
 - next-devtools (port 3000, 2026-09-17): `get_errors` → `configErrors: []`, `sessionErrors: []`; `get_compilation_issues` → `[]`.
 

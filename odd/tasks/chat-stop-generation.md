@@ -124,7 +124,7 @@ Allowed files only:
       pass `isStoppable={isBusy}` and `onStopAction={handleStop}` to
       `ChatComposer`; pass `stoppedByUser` at both `shouldRecoverTurn` call sites
       and guard `recover()`'s entry.
-- [x] T4 — Verify: `npm test`, `npm run typecheck`, `npm run lint`; then the
+- [x] T4 — Verify: `pnpm test`, `pnpm run typecheck`, `pnpm run lint`; then the
       native review preflight.
 
 ## Authorized scope
@@ -132,7 +132,7 @@ Allowed files only:
 User-authorized change requested 2026-09-17: "Enable task cancellation from
 @components/chat-composer.tsx in @components/chat-thread.tsx by having the submit
 button toggle it's icon and behaviour". Read-only exploration authorized
-implicitly by the request. Test runner: `npm test` (vitest, already in repo).
+implicitly by the request. Test runner: `pnpm test` (vitest, already in repo).
 
 ## Acceptance criteria
 
@@ -144,7 +144,7 @@ implicitly by the request. Test runner: `npm test` (vitest, already in repo).
   reintentar" and does not auto-recover the cancelled turn.
 - While idle the composer is byte-for-byte the current send button, and
   `create-game-composer` is unaffected.
-- `npm test` and `npm run typecheck` pass. `npm run lint` currently reports the two previously documented findings below; it is not fully green.
+- `pnpm test` and `pnpm run typecheck` pass. `pnpm run lint` currently reports the two previously documented findings below; it is not fully green.
 
 ## Progress
 
@@ -160,10 +160,10 @@ implicitly by the request. Test runner: `npm test` (vitest, already in repo).
 
 ## Verification evidence
 
-- `npm test` (vitest): **PASS** — 4 files, 26/26 tests, 2026-09-17. Red state
+- `pnpm test` (vitest): **PASS** — 4 files, 26/26 tests, 2026-09-17. Red state
   observed first for the stopped-turn case, then green.
-- `npm run typecheck` (`tsc --noEmit`): **PASS**, exit 0, 2026-09-17.
-- `npm run lint` (`oxlint`): **exit 1 — 2 PRE-EXISTING errors, 0 from this
+- `pnpm run typecheck` (`tsc --noEmit`): **PASS**, exit 0, 2026-09-17.
+- `pnpm run lint` (`oxlint`): **exit 1 — 2 PRE-EXISTING errors, 0 from this
   change.** `trigger/example.ts:7 no-explicit-any` (file untouched) and
   `components/chat-thread.tsx:32 react(set-state-in-effect)` in the untouched
   `useProgressiveStatus` helper. Independently confirmed pre-existing by
@@ -244,6 +244,6 @@ implicitly by the request. Test runner: `npm test` (vitest, already in repo).
   and to `oklch(1 0 0)` on light. It also keeps the repo's strict token-only
   convention — `grep` finds **zero** hardcoded colours across `components/` and
   `app/`.
-- Re-verified after the revert: `npm test` 26/26 PASS; `npm run typecheck` exit
-  0; `npm run lint` unchanged (same 2 pre-existing errors, none in
+- Re-verified after the revert: `pnpm test` 26/26 PASS; `pnpm run typecheck` exit
+  0; `pnpm run lint` unchanged (same 2 pre-existing errors, none in
   `chat-composer.tsx`).

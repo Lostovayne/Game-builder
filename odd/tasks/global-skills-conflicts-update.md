@@ -9,7 +9,7 @@ Alcance: `~/.agents/skills/` (fuente única), `~/.agents/.skill-lock.json`, link
 - El loader de skills reporta `[Skill conflicts] description exceeds 1024 characters` para 8 skills Infisical en `~/.agents/skills/`.
 - Fuente única de la verdad: `~/.agents/skills/` (ver memoria obs 875 — duplicados de `.pi` ya eliminados).
 - Lock global: `~/.agents/.skill-lock.json` (178 entries, 17 de `Infisical/ai-skills`).
-- `npx skills update` completo se cuelga con ~178 skills → ejecutar por lotes por repo fuente (lección obs 872).
+- `pnpm dlx skills update` completo se cuelga con ~178 skills → ejecutar por lotes por repo fuente (lección obs 872).
 - Orden importante: el update puede restaurar contenido desde upstream; acotar descriptions recién después del update.
 
 ## Medición inicial (largo de description real, límite 1024)
@@ -54,7 +54,7 @@ Alcance: `~/.agents/skills/` (fuente única), `~/.agents/.skill-lock.json`, link
 
 - Acotar description = editar la línea `description:` del frontmatter únicamente. No se toca el cuerpo del skill.
 - Tras editar, el `skillFolderHash` del lock queda desalineado para esos 7 (esperado; solo afecta a futuros updates que podrían restaurar el upstream — re-acotar tras cada update de esa familia).
-- `npx skills list -g` / `ls -g` cuelgan (interactivos) — no usar para verificación; validar con parser YAML sobre `~/.agents/skills/*/SKILL.md`.
+- `pnpm dlx skills list -g` / `ls -g` cuelgan (interactivos) — no usar para verificación; validar con parser YAML sobre `~/.agents/skills/*/SKILL.md`.
 - Escáner por regex da falso positivo con scalars plegados (`description: >`) si no corta en la siguiente clave del frontmatter: usar `yaml.safe_load`.
 - Scope `codex` retirado del ecosistema de skills: quitado de `lastSelectedAgents` en el lock. `~/.codex` no existe y no debe recrearse.
 - Backups de los 11 SKILL.md tocados: `/c/tmp/skills-backup/*.SKILL.md`; scripts: `/c/tmp/trim_skills.py`, `/c/tmp/trim_pki.py`; log del update: `/c/tmp/skills-update.log`.

@@ -18,7 +18,7 @@ The README currently opens with a screenshot presented as a logo, describes an o
 
 - Do not edit the screenshot asset or unrelated source files.
 - Preserve the unrelated existing worktree changes. The user later explicitly authorized commits and push for the current changes; deliver the coherent README and chat work units on a feature branch.
-- TDD mode: not applicable to documentation-only edits. Exact functional test runner is `npm run test` (Vitest), but it is not applicable to this README-only task.
+- TDD mode: not applicable to documentation-only edits. Exact functional test runner is `pnpm run test` (Vitest), but it is not applicable to this README-only task.
 
 ## Tasks
 
@@ -26,7 +26,7 @@ The README currently opens with a screenshot presented as a logo, describes an o
 
 - **Status:** complete
 - **Route:** delegated read-only mapping (`gentle-ai-explore`), because accuracy depends on the current architecture beyond a one-file README read.
-- **Evidence:** `trigger/chat.ts`, `lib/chat/store.ts`, `db/schema.ts`, `lib/games/actions.ts`, `lib/env.ts`, `package.json`, and `drizzle.config.ts` were compared with README claims. Durable Trigger.dev chat agent and transcript persistence are implemented; `npm run lint` uses oxlint; stale roadmap entries need correction.
+- **Evidence:** `trigger/chat.ts`, `lib/chat/store.ts`, `db/schema.ts`, `lib/games/actions.ts`, `lib/env.ts`, `package.json`, and `drizzle.config.ts` were compared with README claims. Durable Trigger.dev chat agent and transcript persistence are implemented; `pnpm run lint` uses oxlint; stale roadmap entries need correction.
 - **Checks:** Independent source-to-document audit returned exact repository references.
 
 ### RDR-2 — Reorganize and polish README

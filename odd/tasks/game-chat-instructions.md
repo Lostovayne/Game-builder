@@ -48,7 +48,7 @@ Allowed files only:
 - [x] T1 — Feature doc + Engram mirror + visible todo (parent) — before the first source write — route: parent — outcome: done
 - [x] T2 — `lib/games/instructions/{workflow,runtime,index}.ts` with test-first `index.test.ts` (RED → GREEN) — route: delegated writer (`gentle-ai-worker`, `muqczyml-1-52ij`) — outcome: RED observed (`Cannot find module './index'`), GREEN 4/4
 - [x] T3 — Wire `gameInstructions` into `trigger/chat.ts` `system` (same writer) — outcome: `system: gameInstructions.join("\n\n")`, other streamText options untouched (parent diff spot check)
-- [x] T4 — Verification: `npm test`, `npm run typecheck`, `npm run lint` — route: delegated verifier (`muqd6mij-2-3ca0`, delta re-run `muqd972d-3-97q9`) — outcome: all pass; one factuality finding fixed (sandbox "exactly one" wording overstated the non-atomic check-create-update sequence)
+- [x] T4 — Verification: `pnpm test`, `pnpm run typecheck`, `pnpm run lint` — route: delegated verifier (`muqd6mij-2-3ca0`, delta re-run `muqd972d-3-97q9`) — outcome: all pass; one factuality finding fixed (sandbox "exactly one" wording overstated the non-atomic check-create-update sequence)
 - [x] T5 — Work-unit commit on feature branch (branch first; user decides push/PR) — outcome: `fe35522 feat(chat): compose game system prompt from lib/games/instructions` (6 files, 168+/1−; `package-lock.json` deliberately left out of the commit)
 
 ## Authorized Scope
@@ -61,27 +61,27 @@ Files listed under Scope only. No other source files. No push/PR unless the user
 - The combined array contains both the workflow section and the runtime section, workflow first.
 - `trigger/chat.ts` passes `system: <composed instructions>` to `streamText` (no placeholder text remains).
 - Prompt text states only facts that exist in the codebase.
-- `npm test`, `npm run typecheck`, `npm run lint` pass.
+- `pnpm test`, `pnpm run typecheck`, `pnpm run lint` pass.
 
 ## Applicable Checks
 
-- `npm test` (`vitest run`)
-- `npm run typecheck` (`tsc --noEmit`)
-- `npm run lint` (`oxlint`)
+- `pnpm test` (`vitest run`)
+- `pnpm run typecheck` (`tsc --noEmit`)
+- `pnpm run lint` (`oxlint`)
 
 ## TDD
 
 - Mode: **strict** (project AGENTS.md: `Strict TDD Mode: enabled`; vitest present).
-- Test runner: `npm test` (vitest).
-- Focused checks: `npm test -- --run lib/games/instructions/index.test.ts`.
+- Test runner: `pnpm test` (vitest).
+- Focused checks: `pnpm test --run lib/games/instructions/index.test.ts`.
 
 ## Verification Evidence
 
-- RED: `npm test -- --run lib/games/instructions/index.test.ts` failed with `Cannot find module './index'` (1 failed suite, 0 tests) before `index.ts` existed.
+- RED: `pnpm test --run lib/games/instructions/index.test.ts` failed with `Cannot find module './index'` (1 failed suite, 0 tests) before `index.ts` existed.
 - GREEN: same focused run → 1 file, 4 tests passed after `index.ts`.
-- Fresh verifier (`muqd6mij-2-3ca0`): `npm test` → 10 files / 95 tests pass; `npm run typecheck` clean; `npm run lint` clean. Acceptances 1, 2, 4 PASS; acceptance 3 flagged one overstatement.
+- Fresh verifier (`muqd6mij-2-3ca0`): `pnpm test` → 10 files / 95 tests pass; `pnpm run typecheck` clean; `pnpm run lint` clean. Acceptances 1, 2, 4 PASS; acceptance 3 flagged one overstatement.
 - Fix: `runtime.ts` SANDBOX LIFECYCLE reworded to "bound to one sandbox … persisted id reused, never re-provisioned" (matches `createGameSandbox` at `lib/daytona/utils.ts:131-159`).
-- Delta verifier (`muqd972d-3-97q9`): `npm test` 10 files / 95 tests pass, typecheck clean, lint clean; wording confirmed accurate.
+- Delta verifier (`muqd972d-3-97q9`): `pnpm test` 10 files / 95 tests pass, typecheck clean, lint clean; wording confirmed accurate.
 - Parent spot check: full diff reviewed — placeholder gone, `reasoning`/`providerOptions`/`abortSignal`/hooks untouched, only allowed surfaces changed (`package-lock.json` dirty pre-existing, this doc expected).
 - Native RDD review (user chose commit-then-review to keep the 10.4k-line lockfile diff out of the candidate): lineage `review-b5201599cda35005`, committed range `b50a27c..fe35522` (6 paths, 169 lines, tier medium, lens `review-reliability`), forecast `transport pi_host_relay / model_runs 1 / lenses [review-reliability]`, result **approved**, acknowledgement burned (`gentle-ai.review-acknowledged/v1`). Delivery remains ordinary repo policy (push/PR = user decision).
 

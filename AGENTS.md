@@ -12,7 +12,7 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 ## Database (Drizzle + Neon, dev mode)
 
-Schema changes go live with `npm run db:push` (Drizzle Kit `push` against `DATABASE_URL_UNPOOLED`). This project is in development with no backwards-compat needs, so no migration files are kept — `db:generate` / `db:migrate` and the `drizzle/` folder are not used.
+Schema changes go live with `pnpm run db:push` (Drizzle Kit `push` against `DATABASE_URL_UNPOOLED`). This project is in development with no backwards-compat needs, so no migration files are kept — `db:generate` / `db:migrate` and the `drizzle/` folder are not used.
 
 <!-- END:drizzle-dev-rules -->
 

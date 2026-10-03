@@ -82,13 +82,13 @@ Prompt
 | AI              | Vercel AI SDK with Google Gemini models                     |
 | Validation      | Zod                                                         |
 | Language        | TypeScript (strict)                                         |
-| Package manager | npm (lockfile included)                                     |
+| Package manager | pnpm (lockfile included)                                    |
 
 ## Getting started
 
 ### Prerequisites
 
-- Node.js 24 or newer and npm
+- Node.js 24 or newer and pnpm
 - A Neon Postgres database
 - A Clerk application with Organizations enabled
 - A Google AI Studio API key
@@ -96,7 +96,7 @@ Prompt
 ### 1. Install dependencies
 
 ```bash
-npm install
+pnpm install
 ```
 
 ### 2. Configure environment variables
@@ -131,13 +131,13 @@ The environment schema in `lib/env.ts` validates required values when server con
 This project uses Drizzle Kit `push` during development; migration files are not maintained in this workflow. Set `DATABASE_URL_UNPOOLED` to the direct database URL, then run:
 
 ```bash
-npm run db:push
+pnpm run db:push
 ```
 
 To open Drizzle Studio:
 
 ```bash
-npm run db:studio
+pnpm run db:studio
 ```
 
 ### 4. Start the app and chat worker
@@ -145,34 +145,34 @@ npm run db:studio
 In one terminal, run the web app:
 
 ```bash
-npm run dev
+pnpm run dev
 ```
 
 In another terminal, start the local Trigger.dev worker:
 
 ```bash
-npm run trigger:dev
+pnpm run trigger:dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000), sign in, select or create an organization, and describe the game you want to build.
 
 ## Useful scripts
 
-| Command                  | Purpose                                       |
-| ------------------------ | --------------------------------------------- |
-| `npm run dev`            | Start the Next.js development server          |
-| `npm run build`          | Create a production build                     |
-| `npm run start`          | Serve the production build                    |
-| `npm run lint`           | Run Oxlint                                    |
-| `npm run lint:fix`       | Apply Oxlint fixes                            |
-| `npm run typecheck`      | Run `tsc --noEmit`                            |
-| `npm run test`           | Run the Vitest suite once                     |
-| `npm run test:watch`     | Run Vitest in watch mode                      |
-| `npm run format`         | Format TypeScript and TSX files with Prettier |
-| `npm run db:push`        | Push the schema with Drizzle Kit              |
-| `npm run db:studio`      | Open Drizzle Studio                           |
-| `npm run trigger:dev`    | Start the local Trigger.dev worker            |
-| `npm run trigger:deploy` | Deploy Trigger.dev tasks                      |
+| Command                   | Purpose                                       |
+| ------------------------- | --------------------------------------------- |
+| `pnpm run dev`            | Start the Next.js development server          |
+| `pnpm run build`          | Create a production build                     |
+| `pnpm run start`          | Serve the production build                    |
+| `pnpm run lint`           | Run Oxlint                                    |
+| `pnpm run lint:fix`       | Apply Oxlint fixes                            |
+| `pnpm run typecheck`      | Run `tsc --noEmit`                            |
+| `pnpm run test`           | Run the Vitest suite once                     |
+| `pnpm run test:watch`     | Run Vitest in watch mode                      |
+| `pnpm run format`         | Format TypeScript and TSX files with Prettier |
+| `pnpm run db:push`        | Push the schema with Drizzle Kit              |
+| `pnpm run db:studio`      | Open Drizzle Studio                           |
+| `pnpm run trigger:dev`    | Start the local Trigger.dev worker            |
+| `pnpm run trigger:deploy` | Deploy Trigger.dev tasks                      |
 
 ## Project structure
 
@@ -206,9 +206,9 @@ proxy.ts                      # Clerk route protection
 Issues and pull requests are welcome. Keep changes focused and run the relevant checks before submitting:
 
 ```bash
-npm run typecheck
-npm run lint
-npm run test
+pnpm run typecheck
+pnpm run lint
+pnpm run test
 ```
 
 Describe the motivation, implementation, and verification performed.

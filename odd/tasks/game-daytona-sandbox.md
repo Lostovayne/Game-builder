@@ -21,8 +21,8 @@ Games need an isolated Daytona runtime with their starter document in place imme
 - Do not expose Daytona credentials outside server code or call the live Daytona service during tests.
 - Technical artifacts and code are in English.
 - Branch: `feat/game-daytona-sandbox` (created from `main`).
-- TDD: enabled by project instruction; runner `npm test -- --run` (Vitest).
-- User authorized `npm run db:push` and a local Conventional Commit; push/PR remain unauthorized.
+- TDD: enabled by project instruction; runner `pnpm test --run` (Vitest).
+- User authorized `pnpm run db:push` and a local Conventional Commit; push/PR remain unauthorized.
 
 ## Tasks
 
@@ -36,7 +36,7 @@ Games need an isolated Daytona runtime with their starter document in place imme
 - The helper creates `/home/daytona/game` (mode `755`) and uploads a buffer containing exactly `New Game` to `/home/daytona/game/index.html` before persisting sandbox ID.
 - Existing sandbox ID skips re-provisioning and reseeding.
 - `onChatStart` awaits the helper with the game/chat ID.
-- Focused tests and `npm run typecheck` pass; apply the schema through the authorized `npm run db:push`; no live Daytona API call is run.
+- Focused tests and `pnpm run typecheck` pass; apply the schema through the authorized `pnpm run db:push`; no live Daytona API call is run.
 
 ## Progress
 
@@ -47,15 +47,15 @@ Games need an isolated Daytona runtime with their starter document in place imme
 ## Verification and limits
 
 - Worker TDD: focused tests failed on missing new behavior before edits, then passed 9/9 after implementation.
-- Parent and independent verifier ran `npm test -- --run lib/daytona/utils.test.ts`: 9/9 passed; `npm run typecheck`: clean.
+- Parent and independent verifier ran `pnpm test --run lib/daytona/utils.test.ts`: 9/9 passed; `pnpm run typecheck`: clean.
 - Independent verifier confirmed exact labels, folder mode, no-newline content, operation ordering, failure behavior, and existing-ID short circuit.
-- No live Daytona API call was made. `npm run db:push` completed successfully against the configured Neon development database with Drizzle reporting `[✓] Changes applied`.
+- No live Daytona API call was made. `pnpm run db:push` completed successfully against the configured Neon development database with Drizzle reporting `[✓] Changes applied`.
 - Potential operational caveat: a Daytona sandbox may be orphaned if folder creation or upload fails after the sandbox has already been created; its ID is not persisted in that case.
 
 ## Verification and commit
 
-- `npm run db:push` succeeded against the configured Neon development database; Drizzle reported `[✓] Changes applied`.
-- Fresh independent verification after the schema push: `npm test -- --run lib/daytona/utils.test.ts` passed 9/9; `npm run typecheck` passed clean.
+- `pnpm run db:push` succeeded against the configured Neon development database; Drizzle reported `[✓] Changes applied`.
+- Fresh independent verification after the schema push: `pnpm test --run lib/daytona/utils.test.ts` passed 9/9; `pnpm run typecheck` passed clean.
 - Runtime harness: N/A — live Daytona provisioning was intentionally not run; sandbox FS behavior is covered with offline mocks.
 - Rollback boundary: revert the feature commit to remove the nullable game sandbox column declaration, Daytona helper/client, chat hook, tests, and feature progress record together. Do not revert the unrelated `.gitignore` modification.
 - Commit: `0a6093232457b450233414951a9e1594c38ac3d1` (`feat(games): provision Daytona sandbox per game`).

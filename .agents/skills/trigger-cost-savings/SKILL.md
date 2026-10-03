@@ -18,7 +18,7 @@ The full, version-pinned cost-audit workflow ships **inside your installed `@tri
 
 If those paths don't exist, `@trigger.dev/sdk` isn't installed yet — install it first. In a non-hoisted layout, resolve the package with `node -p "require.resolve('@trigger.dev/sdk/package.json')"` and read `skills/` + `docs/` beside it.
 
-Live run analysis needs the Trigger.dev MCP server (`npx trigger.dev@latest install-mcp`). Without it, do the static source analysis only — never fabricate run data.
+Live run analysis needs the Trigger.dev MCP server (`pnpm dlx trigger.dev@latest install-mcp`). Without it, do the static source analysis only — never fabricate run data.
 
 ## Key principles
 

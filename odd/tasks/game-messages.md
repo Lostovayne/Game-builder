@@ -34,7 +34,7 @@ Allowed files only:
 - [x] T3 — Chat API: accept `{gameId, messages}`, verify 401/404 ownership, stream via `streamText`/`toUIMessageStream`, persist full thread on finish — observed: route.ts validates 400/401/404 and persists via `toUIMessageStream({originalMessages, onFinish})` → `saveGameMessages`
 - [x] T4 — Chat thread: accept `{gameId, initialMessages?, initialMessage?}`, initialize `useChat` with `initialMessages` and include `gameId` in transport/body; preserve creation prompt (`?message=`) once behavior — observed: chat-thread.tsx uses `messages: initialMessages` + `DefaultChatTransport({api:"/api/chat", body:{gameId}})`
 - [x] T5 — Game page: pass `game.id` + `game.messages` to `ChatThread` with `initialMessage` from `searchParams` — observed: page.tsx casts `game.messages as UIMessage[]` and renders `<ChatThread gameId initialMessages initialMessage>`
-- [x] T6 — Verification: `npx tsc --noEmit` and `bun run db:push` (or `npm run db:push`) — record observed output; any failing required command forces partial status — observed: see Verification Evidence below
+- [x] T6 — Verification: `pnpm dlx tsc --noEmit` and `bun run db:push` (or `pnpm run db:push`) — record observed output; any failing required command forces partial status — observed: see Verification Evidence below
 
 ## Authorized Scope
 `db/schema.ts`, `lib/games/queries.ts`, `app/api/chat/route.ts`, `components/chat-thread.tsx`, `app/(app)/games/[id]/page.tsx`, `odd/tasks/game-messages.md`. No other files. No new tables.
@@ -47,13 +47,13 @@ Allowed files only:
 - No new tables; ownership checks return 401/404 correctly.
 
 ## Applicable Checks
-- `npx tsc --noEmit` (or `npm run typecheck`)
-- `bun run db:push` (or `npm run db:push`)
+- `pnpm dlx tsc --noEmit` (or `pnpm run typecheck`)
+- `bun run db:push` (or `pnpm run db:push`)
 
 ## Verification Evidence
 - `bun run db:push`: Pulling schema from database ... [✓] Changes applied (injected env from .env.local, pg driver, no diff prompts after T1)
-- `npx tsc --noEmit`: (no output) — success
-- `npm run typecheck`: `tsc --noEmit` — success (no output)
+- `pnpm dlx tsc --noEmit`: (no output) — success
+- `pnpm run typecheck`: `tsc --noEmit` — success (no output)
 
 ## Progress Log
 - 2026-09-17: Doc created. Engram mirror: created obs-ccfee19435e626ca (#925).
