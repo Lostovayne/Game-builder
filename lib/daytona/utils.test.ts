@@ -38,6 +38,9 @@ const daytonaMock = vi.hoisted(() => {
   const create = vi.fn()
   const makeSandbox = (id: string | undefined) => ({
     id,
+    // Mirrors the real SDK: `create` waits until the sandbox is started, so a
+    // freshly provisioned instance is already running.
+    state: "started",
     fs: { createFolder, uploadFile },
   })
 
@@ -64,15 +67,17 @@ const previewMock = vi.hoisted(() => {
     })
   )
   const start = vi.fn(async () => undefined)
-  const makeSandbox = () => ({
-    id: "sandbox-1",
+  const makeSandbox = (id = "sandbox-1") => ({
+    id,
     state: state.value,
     start,
     process: { executeCommand, createSession, executeSessionCommand },
   })
-  const get = vi.fn(async () => {
+  // Resolves the requested id the way `daytona.get` does, so tests can prove
+  // which id a helper asked Daytona for.
+  const get = vi.fn(async (id = "sandbox-1") => {
     if (!state.sandbox) {
-      state.sandbox = makeSandbox()
+      state.sandbox = makeSandbox(id)
     }
     return state.sandbox
   })
@@ -99,6 +104,7 @@ vi.mock("@/lib/daytona/client", () => ({
 import {
   GAME_PREVIEW_PORT,
   createGameSandbox,
+  getGameSandbox,
   startGameServer,
 } from "@/lib/daytona/utils"
 
@@ -106,15 +112,17 @@ describe("createGameSandbox", () => {
   beforeEach(() => {
     vi.clearAllMocks()
     dbMock.state.row = undefined
+    previewMock.state.value = "started"
+    previewMock.state.sandbox = undefined
   })
 
   it("creates a labelled sandbox, seeds the starter file, then persists the id", async () => {
     dbMock.state.row = { sandboxId: null }
     daytonaMock.create.mockResolvedValue(daytonaMock.makeSandbox("sandbox-1"))
 
-    const id = await createGameSandbox("game-1")
+    const { sandbox } = await createGameSandbox("game-1")
 
-    expect(id).toBe("sandbox-1")
+    expect(sandbox.id).toBe("sandbox-1")
     expect(daytonaMock.create).toHaveBeenCalledTimes(1)
     // Exactly the labels payload: no `name` and no extra fields.
     expect(daytonaMock.create).toHaveBeenCalledWith({
@@ -159,12 +167,14 @@ describe("createGameSandbox", () => {
     expect(uploadOrder).toBeLessThan(persistOrder)
   })
 
-  it("reuses an existing sandbox id without provisioning or reseeding", async () => {
+  it("resolves the existing sandbox instead of provisioning or reseeding", async () => {
     dbMock.state.row = { sandboxId: "sandbox-existing" }
 
-    const id = await createGameSandbox("game-1")
+    const { sandbox } = await createGameSandbox("game-1")
 
-    expect(id).toBe("sandbox-existing")
+    // The persisted id is resolved into a live instance, never re-created.
+    expect(sandbox.id).toBe("sandbox-existing")
+    expect(previewMock.get).toHaveBeenCalledWith("sandbox-existing")
     expect(daytonaMock.create).not.toHaveBeenCalled()
     expect(daytonaMock.createFolder).not.toHaveBeenCalled()
     expect(daytonaMock.uploadFile).not.toHaveBeenCalled()
@@ -391,5 +401,98 @@ describe("startGameServer", () => {
       undefined,
       expect.any(Number)
     )
+  })
+})
+
+describe("getGameSandbox", () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    dbMock.state.row = undefined
+    previewMock.state.value = "started"
+    previewMock.state.sandbox = undefined
+    previewMock.executeCommand.mockReset()
+    previewMock.executeCommand.mockResolvedValue({ exitCode: 0, result: "200" })
+    previewMock.createSession.mockReset()
+    previewMock.createSession.mockResolvedValue(undefined)
+    previewMock.executeSessionCommand.mockReset()
+    previewMock.executeSessionCommand.mockResolvedValue({
+      cmdId: "cmd-1",
+      output: "",
+      exitCode: 0,
+    })
+    previewMock.start.mockReset()
+    previewMock.start.mockResolvedValue(undefined)
+  })
+
+  it("provisions a game without a sandbox, then hands back the instance", async () => {
+    dbMock.state.row = { sandboxId: null }
+    daytonaMock.create.mockResolvedValue(daytonaMock.makeSandbox("sandbox-1"))
+
+    const { sandbox } = await getGameSandbox("game-1")
+
+    expect(daytonaMock.create).toHaveBeenCalledTimes(1)
+    // The instance Daytona just created is returned as-is: `create` waits for
+    // the started state, so nothing is started a second time.
+    expect(sandbox.id).toBe("sandbox-1")
+    expect(previewMock.start).not.toHaveBeenCalled()
+  })
+
+  it("reuses the persisted sandbox id instead of creating another one", async () => {
+    dbMock.state.row = { sandboxId: "sandbox-1" }
+
+    const { sandbox } = await getGameSandbox("game-1")
+
+    expect(daytonaMock.create).not.toHaveBeenCalled()
+    expect(previewMock.get).toHaveBeenCalledWith("sandbox-1")
+    expect(sandbox.id).toBe("sandbox-1")
+  })
+
+  it("starts a stopped sandbox before handing it back", async () => {
+    dbMock.state.row = { sandboxId: "sandbox-1" }
+    previewMock.state.value = "stopped"
+    previewMock.state.sandbox = undefined
+
+    const { sandbox } = await getGameSandbox("game-1")
+
+    expect(previewMock.start).toHaveBeenCalledTimes(1)
+    expect(previewMock.start).toHaveBeenCalledWith(expect.any(Number))
+    expect(sandbox).toBe(previewMock.state.sandbox)
+  })
+
+  it("does not start a sandbox that is already running", async () => {
+    dbMock.state.row = { sandboxId: "sandbox-1" }
+
+    await getGameSandbox("game-1")
+
+    expect(previewMock.start).not.toHaveBeenCalled()
+  })
+
+  it("never launches or health-checks the preview server", async () => {
+    dbMock.state.row = { sandboxId: "sandbox-1" }
+
+    await getGameSandbox("game-1")
+
+    // Booting the HTTP server is `startGameServer`'s job; this helper only
+    // guarantees a running sandbox instance.
+    expect(previewMock.executeCommand).not.toHaveBeenCalled()
+    expect(previewMock.createSession).not.toHaveBeenCalled()
+    expect(previewMock.executeSessionCommand).not.toHaveBeenCalled()
+  })
+
+  it("rejects before any Daytona call when the game does not exist", async () => {
+    await expect(getGameSandbox("missing-game")).rejects.toThrow(/not found/)
+
+    expect(daytonaMock.create).not.toHaveBeenCalled()
+    expect(previewMock.get).not.toHaveBeenCalled()
+    expect(previewMock.start).not.toHaveBeenCalled()
+  })
+
+  it("propagates when the sandbox cannot be retrieved", async () => {
+    dbMock.state.row = { sandboxId: "sandbox-1" }
+    previewMock.get.mockRejectedValueOnce(new Error("sandbox not found"))
+
+    await expect(getGameSandbox("game-1")).rejects.toThrow("sandbox not found")
+
+    expect(previewMock.start).not.toHaveBeenCalled()
   })
 })

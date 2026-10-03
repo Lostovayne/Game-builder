@@ -47,9 +47,11 @@ export const gameChat = chat.agent({
     if (seed) chat.history.set(seed)
   },
   // First message of a chat's lifetime. Provision the game's Daytona
-  // sandbox exactly once here, before the run loop. `chatId` is the game
-  // id: the transcript storage maps chats onto `games.id`. The helper is
-  // idempotent, so a game that already owns a sandbox is left untouched.
+  // sandbox here, before the run loop. `chatId` is the game id: the
+  // transcript storage maps chats onto `games.id`. The helper is
+  // idempotent — a game that already owns a sandbox is never re-provisioned
+  // or reseeded, only resolved into its existing instance (the return value
+  // is unused here; tools call `getGameSandbox` when they need a running one).
   onChatStart: async ({ chatId }) => {
     // Loaded dynamically: the helper (and transitively `@/lib/daytona/client`)
     // reads server-only env at module scope, and a static import here would

@@ -21,7 +21,7 @@ const GAME_STARTER_CONTENT = "New Game"
 export const GAME_PREVIEW_PORT = 8000
 
 const GAME_HEALTH_CHECK_TIMEOUT_SECONDS = 10
-const GAME_SERVER_START_TIMEOUT_SECONDS = 60
+const GAME_START_TIMEOUT_SECONDS = 60
 const GAME_HEALTH_POLL_INTERVAL_MS = 500
 const GAME_HEALTH_POLL_ATTEMPTS = 20
 const GAME_PREVIEW_SESSION_ID = "game-preview"
@@ -69,8 +69,8 @@ async function isPreviewPortHealthy(sandbox: {
  * Idempotent for normal sequential calls: once the server is healthy,
  * subsequent calls return without launching anything.
  *
- * Resolves with the started or reused sandbox so callers can mint preview
- * URLs from it without a second retrieval.
+ * Resolves `{ sandbox }` with the started or reused instance so callers can
+ * mint preview URLs from it without a second retrieval.
  */
 export async function startGameServer(
   sandboxId: string
@@ -78,7 +78,7 @@ export async function startGameServer(
   const sandbox = await daytona.get(sandboxId)
 
   if (sandbox.state !== "started") {
-    await sandbox.start(GAME_SERVER_START_TIMEOUT_SECONDS)
+    await sandbox.start(GAME_START_TIMEOUT_SECONDS)
   }
 
   if (await isPreviewPortHealthy(sandbox)) {
@@ -103,7 +103,7 @@ export async function startGameServer(
       command: `cd ${GAME_SANDBOX_DIR} && python3 -m http.server ${GAME_PREVIEW_PORT} --bind 0.0.0.0`,
       runAsync: true,
     },
-    GAME_SERVER_START_TIMEOUT_SECONDS
+    GAME_START_TIMEOUT_SECONDS
   )
 
   for (let attempt = 0; attempt < GAME_HEALTH_POLL_ATTEMPTS; attempt++) {
@@ -120,15 +120,20 @@ export async function startGameServer(
 
 /**
  * Provisions (at most once) the Daytona sandbox bound to a game, seeds the
- * starter game file, and returns the sandbox id.
+ * starter game file, and resolves `{ sandbox }` with a live instance.
  *
- * Idempotent: a game that already has a saved `sandboxId` returns it without
- * touching Daytona or reseeding. A missing game is rejected before any
- * external call. The sandbox id is persisted only after the game folder and
- * starter file are in place, so any external failure propagates without
- * saving a bogus id.
+ * Idempotent: a game that already has a saved `sandboxId` skips creation and
+ * seeding, resolving that persisted id instead — one Daytona lookup, never a
+ * second sandbox. A missing game is rejected before any external call. The
+ * sandbox id is persisted only after the game folder and starter file are in
+ * place, so any external failure propagates without saving a bogus id.
+ *
+ * Every sandbox-facing helper resolves `{ sandbox }` so callers destructure
+ * the same shape regardless of the entry point they used.
  */
-export async function createGameSandbox(gameId: string): Promise<string> {
+export async function createGameSandbox(
+  gameId: string
+): Promise<{ sandbox: Sandbox }> {
   const rows = await db
     .select({ id: games.id, sandboxId: games.sandboxId })
     .from(games)
@@ -141,7 +146,7 @@ export async function createGameSandbox(gameId: string): Promise<string> {
   }
 
   if (game.sandboxId) {
-    return game.sandboxId
+    return { sandbox: await daytona.get(game.sandboxId) }
   }
 
   const sandbox = await daytona.create({ labels: { gameId } })
@@ -158,5 +163,30 @@ export async function createGameSandbox(gameId: string): Promise<string> {
 
   await db.update(games).set({ sandboxId }).where(eq(games.id, gameId))
 
-  return sandboxId
+  return { sandbox }
+}
+
+/**
+ * Resolves `{ sandbox }` with a guaranteed, running sandbox instance for a
+ * game: the game's sandbox exists (provisioned at most once) and is started
+ * before it is handed back.
+ *
+ * This is the entry point chat tools should use — once it resolves, callers
+ * can execute commands, read/write files, or mint preview URLs without any
+ * further Daytona bookkeeping.
+ *
+ * Deliberately does *not* boot the game's HTTP preview server; that is
+ * `startGameServer`'s job, so a tool call never pays for a health-check round
+ * trip it does not need.
+ */
+export async function getGameSandbox(
+  gameId: string
+): Promise<{ sandbox: Sandbox }> {
+  const { sandbox } = await createGameSandbox(gameId)
+
+  if (sandbox.state !== "started") {
+    await sandbox.start(GAME_START_TIMEOUT_SECONDS)
+  }
+
+  return { sandbox }
 }
