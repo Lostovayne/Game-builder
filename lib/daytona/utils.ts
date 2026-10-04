@@ -7,10 +7,13 @@ import { eq } from "drizzle-orm"
 import { games } from "@/db/schema"
 import { db } from "@/lib/db"
 import { daytona } from "@/lib/daytona/client"
+import { GAME_DIR, PREVIEW_PORT } from "@/lib/daytona/constants"
 
 // Directory and entrypoint the game runtime serves from inside the sandbox.
-const GAME_SANDBOX_DIR = "/home/daytona/game"
-const GAME_SANDBOX_FILE = `${GAME_SANDBOX_DIR}/index.html`
+// Both live in `@/lib/daytona/constants` so the system prompt and the chat
+// tools describe the same layout this module actually seeds and serves.
+const GAME_SANDBOX_DIR = GAME_DIR
+const GAME_SANDBOX_FILE = `${GAME_DIR}/index.html`
 const GAME_SANDBOX_FILE_MODE = "755"
 const GAME_STARTER_CONTENT = "New Game"
 
@@ -18,7 +21,7 @@ const GAME_STARTER_CONTENT = "New Game"
  * Fixed port the game preview HTTP server listens on inside the sandbox.
  * Exported so downstream API tasks can build preview URLs against it.
  */
-export const GAME_PREVIEW_PORT = 8000
+export const GAME_PREVIEW_PORT = PREVIEW_PORT
 
 const GAME_HEALTH_CHECK_TIMEOUT_SECONDS = 10
 const GAME_START_TIMEOUT_SECONDS = 60
