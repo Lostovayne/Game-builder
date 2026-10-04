@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation"
 import { useEffect, useRef, useState } from "react"
 
 import { ChatComposer } from "@/components/chat-composer"
+import { ToolCallMarker } from "@/components/chat-tool-marker"
 import { Bubble, BubbleContent } from "@/components/ui/bubble"
 import { Message, MessageAvatar, MessageContent } from "@/components/ui/message"
 import {
@@ -490,20 +491,24 @@ export function ChatThread({
                 const itemId = message.id || `message-${index}`
                 const isLast = index === messages.length - 1
                 if (message.role === "assistant") {
-                  const textParts = message.parts.filter(
-                    (part): part is Extract<typeof part, { type: "text" }> =>
-                      part.type === "text"
-                  )
                   // Reasoning parts only exist when thinking is enabled
-                  // (sendReasoning: true + reasoning != "none"). Rendered
-                  // collapsed/live so waiting never looks dead.
+                  // (sendReasoning: true + reasoning != "none"). They are
+                  // aggregated into one collapsed <details> block, while
+                  // text and tool-call parts render inline in stream order.
                   const reasoningParts = message.parts.filter(
                     (
                       part
                     ): part is Extract<typeof part, { type: "reasoning" }> =>
                       part.type === "reasoning"
                   )
+                  const textParts = message.parts.filter(
+                    (part): part is Extract<typeof part, { type: "text" }> =>
+                      part.type === "text"
+                  )
                   const hasVisibleText = textParts.some((part) => part.text)
+                  const hasToolParts = message.parts.some(
+                    (part) => part.type.startsWith("tool-") || part.type === "dynamic-tool"
+                  )
                   const isStreamingThisMessage = isLast && isBusy
                   const streamingReasoning = reasoningParts.find(
                     (part) => part.state === "streaming" || !part.state
@@ -547,11 +552,10 @@ export function ChatThread({
                                   ))}
                                 </details>
                               ) : null}
-                              {hasVisibleText ? (
-                                textParts.map((part, partIndex) => (
-                                  <span key={partIndex}>{part.text}</span>
-                                ))
-                              ) : isStreamingThisMessage ? (
+                              {/* Reasoning is aggregated above; text spans and
+                                  tool markers render interleaved, in stream
+                                  order, exactly as the agent produced them. */}
+                              {isStreamingThisMessage && !hasVisibleText && !hasToolParts ? (
                                 <span
                                   className="animate-pulse text-muted-foreground"
                                   aria-live="polite"
@@ -561,6 +565,27 @@ export function ChatThread({
                                     : "Pensando…"}
                                 </span>
                               ) : null}
+                              {message.parts.map((part, partIndex) => {
+                                if (part.type === "text") {
+                                  // Once tool markers exist, the opening
+                                  // sentence of the reply reads naturally as
+                                  // narrative between them.
+                                  if (!part.text) return null
+                                  return <span key={partIndex}>{part.text}</span>
+                                }
+                                if (
+                                  part.type.startsWith("tool-") ||
+                                  part.type === "dynamic-tool"
+                                ) {
+                                  return (
+                                    <ToolCallMarker
+                                      key={"toolCallId" in part ? part.toolCallId : partIndex}
+                                      part={part as Extract<UIMessage["parts"][number], { toolCallId: string }>}
+                                    />
+                                  )
+                                }
+                                return null
+                              })}
                             </BubbleContent>
                           </Bubble>
                         </MessageContent>
