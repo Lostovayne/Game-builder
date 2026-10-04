@@ -1,4 +1,5 @@
 import { chat } from "@trigger.dev/sdk/ai"
+import { stepCountIs } from "ai"
 
 // System prompt composed in lib/games/instructions: product workflow
 // guidance first, Daytona runtime facts second, joined per section.
@@ -7,6 +8,15 @@ import { getChatModel } from "@/lib/ai"
 import { readGameTranscriptRow } from "@/lib/chat/game-rows"
 import { shouldSeedHistory } from "@/lib/chat/seed"
 import { gameTranscriptStorage } from "@/lib/chat/store"
+import { gameTools } from "@/lib/games/tools"
+
+// Steps one turn may take once tools are in play. The default stops after a
+// single step, which would execute one tool call and never let the model see
+// the result. 30 covers a real authoring turn — list, read a few files, write,
+// verify by reading back, patch with replace_text — while still bounding a
+// model that gets stuck re-reading. `maxTurns` on the agent stays the outer
+// ceiling.
+export const MAX_TURN_STEPS = 30
 
 // Pure, dependency-free precondition for the run loop: a turn can reach
 // `run` with zero messages (e.g. a `regenerate-message` trigger with no
@@ -34,6 +44,11 @@ export const gameChat = chat.agent({
   uiMessageStreamOptions: {
     sendReasoning: true,
   },
+  // Declared on the agent, not only on `streamText`, so each tool's
+  // `toModelOutput` is re-applied when prior-turn history is re-converted on
+  // later turns. The per-turn function binds the set to this conversation's
+  // game: `chatId` is the game id, and the tools resolve its sandbox from it.
+  tools: ({ chatId }) => gameTools(chatId),
   // Fresh runs skip the boot snapshot read (the runtime only restores
   // prior state on continuations/retries), so history seeded out-of-band
   // in our database is invisible to the accumulator on the first turn.
@@ -61,12 +76,17 @@ export const gameChat = chat.agent({
     const { createGameSandbox } = await import("@/lib/daytona/utils")
     await createGameSandbox(chatId)
   },
-  run: async ({ messages, signal, streamText }) => {
+  run: async ({ messages, tools, signal, streamText }) => {
     assertTranscriptNotEmpty(messages)
     return streamText({
       model: getChatModel(),
       system: gameInstructions.join("\n\n"),
       messages,
+      // The same set declared on the config, handed back typed — this is what
+      // the model actually calls. Without `stopWhen` the loop stops after one
+      // step, so a tool result would never reach the model.
+      tools,
+      stopWhen: stepCountIs(MAX_TURN_STEPS),
       // Correct way to minimize thinking on Gemini 3 in AI SDK v5+:
       // `reasoning: "none"` disables the reasoning effort, and the explicit
       // minimal thinkingLevel + includeThoughts: false guarantees the
