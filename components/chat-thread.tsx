@@ -29,6 +29,7 @@ import {
   scheduleProgressiveStatusSteps,
 } from "@/lib/chat/progressive-status"
 import { getGameTitle } from "@/lib/games/actions"
+import { isAwaitingNextChunk } from "@/lib/chat/stream-gap"
 import {
   isProvisionalTitle,
   pollForRefinedTitle,
@@ -625,6 +626,20 @@ export function ChatThread({
                                 }
                                 return null
                               })}
+                              {/* Gap detector: the last part settled but the
+                                  next chunk has not arrived — the model is
+                                  thinking, say so instead of looking frozen. */}
+                              {isAwaitingNextChunk(
+                                message.parts,
+                                isStreamingThisMessage
+                              ) ? (
+                                <span
+                                  className="animate-pulse text-muted-foreground"
+                                  aria-live="polite"
+                                >
+                                  Pensando…
+                                </span>
+                              ) : null}
                             </BubbleContent>
                           </Bubble>
                         </MessageContent>
