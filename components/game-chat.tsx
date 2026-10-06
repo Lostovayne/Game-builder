@@ -2,6 +2,7 @@
 
 import { useCallback, useState } from "react"
 import type { UIMessage } from "ai"
+import { useRouter } from "next/navigation"
 
 import { ChatPreview } from "@/components/chat-preview"
 import { ChatThread } from "@/components/chat-thread"
@@ -42,10 +43,17 @@ export function GameChat({
   initialMessages?: UIMessage[]
   initialSessions?: ChatSessions
 }) {
+  const router = useRouter()
   const [previewRevision, setPreviewRevision] = useState(0)
   const handleTurnSettled = useCallback(() => {
     setPreviewRevision((revision) => revision + 1)
-  }, [])
+    // The sandbox is usually provisioned during the first chat turn, which
+    // means `sandboxId` was still null when the server last rendered this
+    // page. Refresh once the turn settles so the preview panel mounts on its
+    // own instead of waiting for a manual reload. When the sandbox already
+    // exists, the revision bump above is enough and no refresh is needed.
+    if (sandboxId === null) router.refresh()
+  }, [sandboxId, router])
 
   return (
     <ResizablePanelGroup orientation="horizontal" className="min-h-0 flex-1">
