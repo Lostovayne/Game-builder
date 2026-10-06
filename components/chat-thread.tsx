@@ -84,6 +84,7 @@ export function ChatThread({
   initialTitle,
   initialMessages,
   initialSessions,
+  onTurnSettled,
 }: {
   gameId: string
   initialTitle: string
@@ -92,6 +93,12 @@ export function ChatThread({
     string,
     { publicAccessToken: string; lastEventId: string }
   >
+  /**
+   * Fired whenever a turn settles (busy → idle). The parent uses it to remount
+   * the preview iframe so the user sees the files the turn just wrote, without
+   * needing a URL that changes (Daytona reuse the same preview URL).
+   */
+  onTurnSettled?: () => void
 }) {
   const router = useRouter()
   const [input, setInput] = useState("")
@@ -212,6 +219,23 @@ export function ChatThread({
   useEffect(() => {
     messagesRef.current = messages
   })
+
+  // Notify the parent when a turn settles so it can remount the preview.
+  // Ref-based so the callback identity never re-creates anything, and
+  // transition-based (busy → idle) so it covers every settle path:
+  // `turn-completed`, a user stop, and a stream error alike.
+  const onTurnSettledRef = useRef(onTurnSettled)
+  useEffect(() => {
+    onTurnSettledRef.current = onTurnSettled
+  })
+  const settledPrevStatusRef = useRef<string>(status)
+  useEffect(() => {
+    const prev = settledPrevStatusRef.current
+    settledPrevStatusRef.current = status
+    const wasBusy = prev === "streaming" || prev === "submitted"
+    const isBusy = status === "streaming" || status === "submitted"
+    if (wasBusy && !isBusy) onTurnSettledRef.current?.()
+  }, [status])
 
   /**
    * Pull the persisted transcript and merge the missing assistant reply.
@@ -507,7 +531,9 @@ export function ChatThread({
                   )
                   const hasVisibleText = textParts.some((part) => part.text)
                   const hasToolParts = message.parts.some(
-                    (part) => part.type.startsWith("tool-") || part.type === "dynamic-tool"
+                    (part) =>
+                      part.type.startsWith("tool-") ||
+                      part.type === "dynamic-tool"
                   )
                   const isStreamingThisMessage = isLast && isBusy
                   const streamingReasoning = reasoningParts.find(
@@ -555,7 +581,9 @@ export function ChatThread({
                               {/* Reasoning is aggregated above; text spans and
                                   tool markers render interleaved, in stream
                                   order, exactly as the agent produced them. */}
-                              {isStreamingThisMessage && !hasVisibleText && !hasToolParts ? (
+                              {isStreamingThisMessage &&
+                              !hasVisibleText &&
+                              !hasToolParts ? (
                                 <span
                                   className="animate-pulse text-muted-foreground"
                                   aria-live="polite"
@@ -571,7 +599,9 @@ export function ChatThread({
                                   // sentence of the reply reads naturally as
                                   // narrative between them.
                                   if (!part.text) return null
-                                  return <span key={partIndex}>{part.text}</span>
+                                  return (
+                                    <span key={partIndex}>{part.text}</span>
+                                  )
                                 }
                                 if (
                                   part.type.startsWith("tool-") ||
@@ -579,8 +609,17 @@ export function ChatThread({
                                 ) {
                                   return (
                                     <ToolCallMarker
-                                      key={"toolCallId" in part ? part.toolCallId : partIndex}
-                                      part={part as Extract<UIMessage["parts"][number], { toolCallId: string }>}
+                                      key={
+                                        "toolCallId" in part
+                                          ? part.toolCallId
+                                          : partIndex
+                                      }
+                                      part={
+                                        part as Extract<
+                                          UIMessage["parts"][number],
+                                          { toolCallId: string }
+                                        >
+                                      }
                                     />
                                   )
                                 }

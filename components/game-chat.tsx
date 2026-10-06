@@ -1,5 +1,6 @@
 "use client"
 
+import { useCallback, useState } from "react"
 import type { UIMessage } from "ai"
 
 import { ChatPreview } from "@/components/chat-preview"
@@ -21,6 +22,11 @@ type ChatSessions = Record<
  *
  * Everything below this component is client code. Keep the server-only work
  * (auth, data fetching, token minting) in the page and pass plain props in.
+ *
+ * This component owns the preview revision: a counter bumped every time the
+ * chat thread reports a settled turn. Daytona reuses the same signed preview
+ * URL across updates, so the revision — not the URL — is what remounts the
+ * iframe and makes the browser re-fetch the regenerated game files.
  */
 export function GameChat({
   gameId,
@@ -36,6 +42,11 @@ export function GameChat({
   initialMessages?: UIMessage[]
   initialSessions?: ChatSessions
 }) {
+  const [previewRevision, setPreviewRevision] = useState(0)
+  const handleTurnSettled = useCallback(() => {
+    setPreviewRevision((revision) => revision + 1)
+  }, [])
+
   return (
     <ResizablePanelGroup orientation="horizontal" className="min-h-0 flex-1">
       <ResizablePanel
@@ -49,6 +60,7 @@ export function GameChat({
           initialTitle={initialTitle}
           initialMessages={initialMessages}
           initialSessions={initialSessions}
+          onTurnSettled={handleTurnSettled}
         />
       </ResizablePanel>
       {/* The preview panel (and its resizable handle) only makes sense when
@@ -62,7 +74,7 @@ export function GameChat({
             minSize="15%"
             className="flex min-h-0 flex-col"
           >
-            <ChatPreview gameId={gameId} />
+            <ChatPreview gameId={gameId} revision={previewRevision} />
           </ResizablePanel>
         </>
       ) : null}

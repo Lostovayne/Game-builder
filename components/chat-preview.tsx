@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useState } from "react"
 
+import { previewFrameKey } from "@/lib/chat/preview-revision"
+
 /**
  * Pure classification of the preview API response. Extracted from the
  * component so the status-mapping behavior can be unit-tested in the
@@ -62,7 +64,19 @@ type PreviewState =
  * tokens, or SDK calls ever reach this client code — only the signed URL
  * returned by the server.
  */
-export function ChatPreview({ gameId }: { gameId: string }) {
+export function ChatPreview({
+  gameId,
+  revision = 0,
+}: {
+  gameId: string
+  /**
+   * Bumped by the parent each time a chat turn settles. Because Daytona keeps
+   * the same signed preview URL across updates, remounting the iframe on a new
+   * revision is what makes the browser re-fetch the regenerated game files
+   * from that unchanged URL.
+   */
+  revision?: number
+}) {
   const [state, setState] = useState<PreviewState>({ kind: "loading" })
   const [attempt, setAttempt] = useState(0)
 
@@ -121,6 +135,7 @@ export function ChatPreview({ gameId }: { gameId: string }) {
       <div className="flex-1 overflow-hidden">
         {state.kind === "ready" ? (
           <iframe
+            key={previewFrameKey(state.url, revision)}
             src={state.url}
             title="Live game preview"
             className="h-full w-full border-0 bg-background"
