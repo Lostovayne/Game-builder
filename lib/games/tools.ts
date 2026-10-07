@@ -74,9 +74,9 @@ function failure(error: unknown): { ok: false; error: string } {
 
 /**
  * Resolves the game's sandbox and runs `run` against it. Resolved lazily per
- * call: `@/lib/daytona/utils` transitively reads server-only env at module
- * scope, and importing it statically would drag that side effect into
- * `trigger/chat.ts` and every consumer of this module. `getGameSandbox`
+ * call: `@/lib/daytona/utils` drags the Daytona SDK, the DB, and `server-only`
+ * into `trigger/chat.ts` and every consumer of this module if imported
+ * statically. `getGameSandbox`
  * provisions the sandbox at most once and starts it if it is stopped, so this
  * is only ever reached with a path that already passed confinement.
  */

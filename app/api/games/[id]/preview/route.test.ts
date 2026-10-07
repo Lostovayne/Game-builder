@@ -54,7 +54,7 @@ const utilsMock = vi.hoisted(() => ({
 vi.mock("server-only", () => ({}))
 vi.mock("@clerk/nextjs/server", () => ({ auth: authMock }))
 vi.mock("@/lib/db", () => ({ db: dbMock.db }))
-vi.mock("@/lib/daytona/client", () => ({ daytona: daytonaMock }))
+vi.mock("@/lib/daytona/client", () => ({ getDaytona: () => daytonaMock }))
 vi.mock("@/lib/daytona/utils", () => utilsMock)
 
 import { GET } from "./route"

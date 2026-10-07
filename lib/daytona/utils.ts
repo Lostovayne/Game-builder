@@ -9,7 +9,7 @@ import { eq } from "drizzle-orm"
 
 import { games } from "@/db/schema"
 import { db } from "@/lib/db"
-import { daytona } from "@/lib/daytona/client"
+import { getDaytona } from "@/lib/daytona/client"
 import { GAME_DIR, PREVIEW_PORT } from "@/lib/daytona/constants"
 
 // Directory and entrypoint the game runtime serves from inside the sandbox.
@@ -117,7 +117,7 @@ async function isPreviewPortHealthy(sandbox: {
 export async function startGameServer(
   sandboxId: string
 ): Promise<{ sandbox: Sandbox }> {
-  const sandbox = await daytona.get(sandboxId)
+  const sandbox = await getDaytona().get(sandboxId)
 
   if (sandbox.state !== "started") {
     await sandbox.start(GAME_START_TIMEOUT_SECONDS)
@@ -186,6 +186,8 @@ export async function createGameSandbox(
   if (!game) {
     throw new Error(`Game ${gameId} not found`)
   }
+
+  const daytona = getDaytona()
 
   if (game.sandboxId) {
     return { sandbox: await daytona.get(game.sandboxId) }

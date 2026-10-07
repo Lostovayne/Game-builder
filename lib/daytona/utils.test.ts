@@ -163,7 +163,7 @@ const previewMock = vi.hoisted(() => {
 vi.mock("server-only", () => ({}))
 vi.mock("@/lib/db", () => ({ db: dbMock.db }))
 vi.mock("@/lib/daytona/client", () => ({
-  daytona: { create: daytonaMock.create, get: previewMock.get },
+  getDaytona: () => ({ create: daytonaMock.create, get: previewMock.get }),
 }))
 // The seeded runtime tree is read with `node:fs/promises`; mock it so the walk
 // runs against the in-memory tree instead of the real `lib/games/runtime`.

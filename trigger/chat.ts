@@ -68,11 +68,11 @@ export const gameChat = chat.agent({
   // or reseeded, only resolved into its existing instance (the return value
   // is unused here; tools call `getGameSandbox` when they need a running one).
   onChatStart: async ({ chatId }) => {
-    // Loaded dynamically: the helper (and transitively `@/lib/daytona/client`)
-    // reads server-only env at module scope, and a static import here would
-    // drag that side effect into every consumer of this module. The hook only
-    // runs server-side in the worker, which resolves the `react-server`
-    // condition and has DAYTONA_API_KEY available.
+    // Loaded dynamically: the helper drags the whole Daytona SDK and its DB
+    // chain into every consumer of this module if imported statically. The
+    // env check itself is lazy (`getDaytona()` validates on call), but the
+    // hook only runs server-side in the worker, which resolves the
+    // `react-server` condition and has DAYTONA_API_KEY available.
     const { createGameSandbox } = await import("@/lib/daytona/utils")
     await createGameSandbox(chatId)
   },
