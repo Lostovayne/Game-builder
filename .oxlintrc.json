@@ -12,7 +12,8 @@
     "build/**",
     "next-env.d.ts",
     "components/ui/**",
-    "hooks/use-mobile.ts"
+    "hooks/use-mobile.ts",
+    "lib/games/runtime/**"
   ],
   "settings": {
     "react": {

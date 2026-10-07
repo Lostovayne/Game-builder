@@ -47,6 +47,71 @@ const daytonaMock = vi.hoisted(() => {
   return { create, createFolder, uploadFile, makeSandbox }
 })
 
+// The runtime files seeded into a fresh sandbox are read off disk with
+// `node:fs/promises`, so the walk is mocked here: a virtual directory tree
+// keyed by normalized absolute paths keeps this suite offline and lets each
+// test drive a nested layout (a subfolder beside the entrypoint) without
+// touching the real `lib/games/runtime`. Paths are normalized to forward
+// slashes so the walk behaves the same on Windows and POSIX.
+const fsMock = vi.hoisted(() => {
+  const dirs = new Map<string, Array<{ name: string; isDir: boolean }>>()
+  const files = new Map<string, Buffer>()
+
+  const normalize = (target: string) => target.replace(/\\/g, "/")
+
+  return {
+    dirs,
+    files,
+    // `root` is the absolute runtime directory the implementation reads;
+    // `entries` maps runtime-relative paths ("index.html", "assets/app.js")
+    // to their contents. Parent directories are derived from the keys.
+    setRuntime(root: string, entries: Record<string, string>) {
+      dirs.clear()
+      files.clear()
+      const base = normalize(root)
+      for (const [relative, content] of Object.entries(entries)) {
+        const segments = relative.split("/")
+        const name = segments.pop() as string
+        let dir = base
+        for (const segment of segments) {
+          const bucket = dirs.get(dir) ?? []
+          if (!bucket.some((entry) => entry.name === segment)) {
+            bucket.push({ name: segment, isDir: true })
+            dirs.set(dir, bucket)
+          }
+          dir = `${dir}/${segment}`
+        }
+        const bucket = dirs.get(dir) ?? []
+        bucket.push({ name, isDir: false })
+        dirs.set(dir, bucket)
+        files.set(`${dir}/${name}`, Buffer.from(content))
+      }
+    },
+    readdir: vi.fn(async (target: string) => {
+      const entries = dirs.get(normalize(target))
+      if (entries === undefined) {
+        throw new Error(`ENOENT: no such directory, scandir '${target}'`)
+      }
+      return entries.map((entry) => ({
+        name: entry.name,
+        isDirectory: () => entry.isDir,
+      }))
+    }),
+    readFile: vi.fn(async (target: string) => {
+      const content = files.get(normalize(target))
+      if (content === undefined) {
+        throw new Error(`ENOENT: no such file or directory, open '${target}'`)
+      }
+      return content
+    }),
+    reset() {
+      dirs.clear()
+      files.clear()
+      vi.clearAllMocks()
+    },
+  }
+})
+
 const previewMock = vi.hoisted(() => {
   const state = {
     value: "started",
@@ -100,6 +165,14 @@ vi.mock("@/lib/db", () => ({ db: dbMock.db }))
 vi.mock("@/lib/daytona/client", () => ({
   daytona: { create: daytonaMock.create, get: previewMock.get },
 }))
+// The seeded runtime tree is read with `node:fs/promises`; mock it so the walk
+// runs against the in-memory tree instead of the real `lib/games/runtime`.
+vi.mock("node:fs/promises", () => ({
+  readdir: fsMock.readdir,
+  readFile: fsMock.readFile,
+}))
+
+import { join } from "node:path"
 
 import {
   GAME_PREVIEW_PORT,
@@ -108,12 +181,20 @@ import {
   startGameServer,
 } from "@/lib/daytona/utils"
 
+// The absolute directory the implementation walks. `additionalFiles` copies
+// `lib/games/runtime/**` into the build preserving the project-relative path,
+// so the module resolves it from the project root.
+const RUNTIME_ROOT = join(process.cwd(), "lib/games/runtime")
+
 describe("createGameSandbox", () => {
   beforeEach(() => {
     vi.clearAllMocks()
     dbMock.state.row = undefined
     previewMock.state.value = "started"
     previewMock.state.sandbox = undefined
+    fsMock.reset()
+    // Default runtime: the single entrypoint, exactly as committed.
+    fsMock.setRuntime(RUNTIME_ROOT, { "index.html": "New Game" })
   })
 
   it("creates a labelled sandbox, seeds the starter file, then persists the id", async () => {
@@ -151,6 +232,76 @@ describe("createGameSandbox", () => {
     // Exact bytes: "New Game", no trailing newline, case-sensitive.
     const uploaded = daytonaMock.uploadFile.mock.calls[0][0]
     expect(uploaded.toString()).toBe("New Game")
+  })
+
+  it("propagates every file and subfolder of the runtime tree, recursively", async () => {
+    dbMock.state.row = { sandboxId: null }
+    daytonaMock.create.mockResolvedValue(daytonaMock.makeSandbox("sandbox-1"))
+    // A nested layout: the entrypoint plus a folder with two files, one of
+    // which lives another level down.
+    fsMock.setRuntime(RUNTIME_ROOT, {
+      "index.html": "New Game",
+      "assets/style.css": "body{}",
+      "assets/scripts/game.js": "console.log('game')",
+    })
+
+    await createGameSandbox("game-1")
+
+    // Every directory in the tree is created at its mapped path, root first.
+    expect(daytonaMock.createFolder.mock.calls.map((call) => call[0])).toEqual([
+      "/home/daytona/game",
+      "/home/daytona/game/assets",
+      "/home/daytona/game/assets/scripts",
+    ])
+    // Every file is uploaded to its mapped path with its exact bytes.
+    const uploaded = Object.fromEntries(
+      daytonaMock.uploadFile.mock.calls.map((call) => [
+        call[1],
+        (call[0] as Buffer).toString(),
+      ])
+    )
+    expect(uploaded).toEqual({
+      "/home/daytona/game/index.html": "New Game",
+      "/home/daytona/game/assets/style.css": "body{}",
+      "/home/daytona/game/assets/scripts/game.js": "console.log('game')",
+    })
+  })
+
+  it("resolves and persists the id only after the whole runtime tree is seeded", async () => {
+    dbMock.state.row = { sandboxId: null }
+    daytonaMock.create.mockResolvedValue(daytonaMock.makeSandbox("sandbox-1"))
+    fsMock.setRuntime(RUNTIME_ROOT, {
+      "index.html": "New Game",
+      "assets/app.js": "export {}",
+    })
+
+    await createGameSandbox("game-1")
+
+    const persistOrder = dbMock.update.mock.invocationCallOrder[0]
+    for (const order of daytonaMock.createFolder.mock.invocationCallOrder) {
+      expect(order).toBeLessThan(persistOrder)
+    }
+    for (const order of daytonaMock.uploadFile.mock.invocationCallOrder) {
+      expect(order).toBeLessThan(persistOrder)
+    }
+  })
+
+  it("rejects and persists no id when the runtime tree cannot be read", async () => {
+    dbMock.state.row = { sandboxId: null }
+    daytonaMock.create.mockResolvedValue(daytonaMock.makeSandbox("sandbox-1"))
+    // The runtime directory is missing from the deploy: the walk fails before
+    // any folder or file reaches the sandbox.
+    fsMock.dirs.clear()
+    fsMock.files.clear()
+
+    await expect(createGameSandbox("game-1")).rejects.toThrow(/ENOENT/)
+
+    // The root game directory is created first, then the walk fails before any
+    // file is uploaded and before the id is persisted.
+    expect(daytonaMock.createFolder).toHaveBeenCalledTimes(1)
+    expect(daytonaMock.uploadFile).not.toHaveBeenCalled()
+    expect(dbMock.update).not.toHaveBeenCalled()
+    expect(dbMock.set).not.toHaveBeenCalled()
   })
 
   it("creates the folder and uploads the file before persisting the id", async () => {

@@ -1,5 +1,8 @@
 import "server-only"
 
+import { readdir, readFile } from "node:fs/promises"
+import { join } from "node:path"
+
 import type { Sandbox } from "@daytona/sdk"
 
 import { eq } from "drizzle-orm"
@@ -13,9 +16,45 @@ import { GAME_DIR, PREVIEW_PORT } from "@/lib/daytona/constants"
 // Both live in `@/lib/daytona/constants` so the system prompt and the chat
 // tools describe the same layout this module actually seeds and serves.
 const GAME_SANDBOX_DIR = GAME_DIR
-const GAME_SANDBOX_FILE = `${GAME_DIR}/index.html`
 const GAME_SANDBOX_FILE_MODE = "755"
-const GAME_STARTER_CONTENT = "New Game"
+
+// The starter tree propagated to every new sandbox. It lives in the repo under
+// `lib/games/runtime` and is copied into the Trigger build by the
+// `additionalFiles` extension in `trigger.config.ts`, which preserves the
+// project-relative path. Resolved from the process working directory because
+// that is the build root at deploy time and the project root in dev.
+const GAME_RUNTIME_SOURCE_DIR = join(process.cwd(), "lib/games/runtime")
+
+/**
+ * Walks `sourceDir` recursively and mirrors it into `destDir` of the sandbox:
+ * every subdirectory is created (mode 755), every file is uploaded with its
+ * exact bytes. The sandbox is Linux, so the walk uses POSIX joins for the
+ * destination even though the host paths may be Windows.
+ *
+ * Best effort is deliberately not applied — the first failure propagates, so a
+ * partial seed never reaches the point where the sandbox id is persisted.
+ */
+async function seedRuntimeTree(
+  sandbox: Sandbox,
+  sourceDir: string,
+  destDir: string
+): Promise<void> {
+  const entries = await readdir(sourceDir, { withFileTypes: true })
+
+  for (const entry of entries) {
+    const source = join(sourceDir, entry.name)
+    const destination = `${destDir}/${entry.name}`
+
+    if (entry.isDirectory()) {
+      await sandbox.fs.createFolder(destination, GAME_SANDBOX_FILE_MODE)
+      await seedRuntimeTree(sandbox, source, destination)
+      continue
+    }
+
+    const content = await readFile(source)
+    await sandbox.fs.uploadFile(content, destination)
+  }
+}
 
 /**
  * Fixed port the game preview HTTP server listens on inside the sandbox.
@@ -159,10 +198,7 @@ export async function createGameSandbox(
   }
 
   await sandbox.fs.createFolder(GAME_SANDBOX_DIR, GAME_SANDBOX_FILE_MODE)
-  await sandbox.fs.uploadFile(
-    Buffer.from(GAME_STARTER_CONTENT),
-    GAME_SANDBOX_FILE
-  )
+  await seedRuntimeTree(sandbox, GAME_RUNTIME_SOURCE_DIR, GAME_SANDBOX_DIR)
 
   await db.update(games).set({ sandboxId }).where(eq(games.id, gameId))
 
