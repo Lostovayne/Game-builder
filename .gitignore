@@ -42,6 +42,9 @@ next-env.d.ts
 # browser automation artifacts (Playwright MCP screenshots/logs)
 .playwright-mcp/
 
+# firecrawl — cache local de contenido scrapeado
+.firecrawl/
+
 # codegraph — índice local regenerable
 .codegraph/
 .neon

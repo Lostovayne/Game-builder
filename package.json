@@ -4,7 +4,7 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "infisical run -- next dev",
     "build": "next build",
     "start": "next start",
     "lint": "oxlint",
@@ -15,7 +15,7 @@
     "test:watch": "vitest",
     "db:studio": "drizzle-kit studio",
     "db:push": "drizzle-kit push",
-    "trigger:dev": "cross-env NODE_OPTIONS=--no-webstorage trigger dev",
+    "trigger:dev": "infisical run -- cross-env NODE_OPTIONS=--no-webstorage trigger dev",
     "trigger:deploy": "trigger deploy"
   },
   "dependencies": {
