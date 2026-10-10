@@ -1,11 +1,12 @@
-import { additionalFiles } from "@trigger.dev/build/extensions/core";
-import { defineConfig } from "@trigger.dev/sdk";
+import { additionalFiles } from "@trigger.dev/build/extensions/core"
+import { defineConfig } from "@trigger.dev/sdk"
 
 export default defineConfig({
   project: "proj_lgkwxiczjplqdfgdsdpf",
   runtime: "node-24",
   logLevel: "log",
-  // The max compute seconds a task is allowed to run. If the task run exceeds this duration, it will be stopped.
+  // The max compute seconds a task is allowed to run. If the task run exceeds this duration,
+  // it will be stopped.
   // You can override this on an individual task.
   // See https://trigger.dev/docs/runs/max-duration
   maxDuration: 3600,
@@ -29,6 +30,6 @@ export default defineConfig({
     // `lib/games/runtime/**` is read at runtime but never imported, so the
     // bundler would not pull it in. Copy it into the build preserving the
     // project-relative path that `createGameSandbox` resolves via cwd.
-    extensions: [additionalFiles({ files: ["lib/games/runtime/**"] })],
+    extensions: [additionalFiles({ files: ["lib/games/runtime/**/*"] })],
   },
-});
+})

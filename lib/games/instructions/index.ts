@@ -2,9 +2,10 @@
 // guidance first, then the runtime environment facts it depends on. Consumers
 // (e.g. `trigger/chat.ts`) join these sections into the final system prompt.
 
+import { engine } from "./engine"
 import { runtime } from "./runtime"
 import { workflow } from "./workflow"
 
-export const gameInstructions: string[] = [workflow, runtime]
+export const gameInstructions: string[] = [workflow, runtime, engine]
 
-export { runtime, workflow }
+export { engine, runtime, workflow }

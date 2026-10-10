@@ -1,1 +1,176 @@
-New Game
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>New Game</title>
+    <!--
+      Seed page for every new sandbox. It loads Three.js through the import
+      map below and renders the welcome scene entirely with the kit in
+      ./engine — replace it on the first turn, but keep the import map: a
+      missing map is what blanks the screen when a module says `from "three"`.
+    -->
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://cdn.jsdelivr.net/npm/three@0.186.1/build/three.module.js",
+          "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.186.1/examples/jsm/"
+        }
+      }
+    </script>
+    <style>
+      :root {
+        color-scheme: dark;
+      }
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+        overflow: hidden;
+        background: #141416;
+      }
+      #app {
+        position: fixed;
+        inset: 0;
+      }
+      /* Safety net only: the kit's HUD owns the visible copy. */
+      .boot-error {
+        position: fixed;
+        inset: auto 0 24px 0;
+        text-align: center;
+        font:
+          13px/1.5 ui-monospace,
+          SFMono-Regular,
+          Menlo,
+          monospace;
+        color: #fda5a5;
+        white-space: pre-wrap;
+        padding: 0 16px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script type="module">
+      import * as THREE from "three"
+      import {
+        createGame,
+        createHud,
+        createLighting,
+        createParticles,
+        createRng,
+        shiny,
+      } from "./engine/index.js"
+
+      // The kit failing to import is the one failure worth showing on the
+      // page itself — every later error would otherwise be a blank screen.
+      window.addEventListener("error", (event) => {
+        if (document.querySelector(".boot-error")) return
+        const el = document.createElement("div")
+        el.className = "boot-error"
+        el.textContent = `Kit failed to load: ${event.message}`
+        document.body.appendChild(el)
+      })
+
+      const rng = createRng("welcome")
+
+      // --- game ----------------------------------------------------------------
+      const game = createGame({
+        el: "#app",
+        background: "#141416",
+        fov: 45,
+        shadows: true,
+      })
+      game.camera.position.set(0, 1.1, 5.4)
+      game.camera.lookAt(0, 0.1, 0)
+      game.scene.fog = new THREE.Fog(0x141416, 9, 26)
+
+      // --- light rig + ground (logo palette: orange body, white edges) --------
+      const lights = createLighting(game.scene, "studio", { shadows: true })
+      const warm = new THREE.PointLight(0xea580c, 12, 14, 2)
+      warm.position.set(-2.6, 1.4, 2.2)
+      game.scene.add(warm)
+
+      const ground = new THREE.Mesh(
+        new THREE.PlaneGeometry(60, 60),
+        new THREE.ShadowMaterial({ color: 0x000000, opacity: 0.4 })
+      )
+      ground.rotation.x = -Math.PI / 2
+      ground.position.y = -1.25
+      ground.receiveShadow = true
+      game.scene.add(ground)
+
+      // --- the cube -----------------------------------------------------------
+      const cubeGeo = new THREE.BoxGeometry(1.8, 1.8, 1.8)
+      const cube = new THREE.Mesh(cubeGeo, shiny("#EA580C", { roughness: 0.28 }))
+      cube.castShadow = true
+      cube.receiveShadow = true
+
+      // White outline, the way the logo's cube reads white on orange.
+      const edges = new THREE.LineSegments(
+        new THREE.EdgesGeometry(cubeGeo),
+        new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.9 })
+      )
+      cube.add(edges)
+      game.add(cube)
+
+      // --- drifting sparks, orange and white ---------------------------------
+      const dust = createParticles({ max: 240, gravity: 0, drag: 0 })
+      game.add(dust.object3d)
+      let dustClock = 0
+      const sparkColors = ["#EA580C", "#FFFFFF"]
+
+      // --- HUD copy -----------------------------------------------------------
+      const hud = createHud({
+        theme: { accent: "#EA580C", fg: "#FFFFFF" },
+      })
+      hud.label("title", "New Game", {
+        position: "top",
+        fontSize: 40,
+        color: "#FFFFFF",
+      })
+      hud.label("subtitle", "Three.js starter kit loaded — engine, controls, HUD, audio, particles…", {
+        position: "top",
+        fontSize: 14,
+        color: "rgba(255, 255, 255, 0.55)",
+      })
+      hud.label("hint", "Replace this page on the first turn — the kit in ./engine is yours to build on.", {
+        position: "bottom",
+        fontSize: 13,
+        color: "rgba(255, 255, 255, 0.4)",
+      })
+
+      // --- frame --------------------------------------------------------------
+      game.addSystem(lights) // rig.update(dt) drives preset animation
+      game.addSystem(dust)
+      game.addSystem(hud) // hud.update(dt) ages toasts/messages
+      game.onUpdate((dt, elapsed) => {
+        cube.rotation.y += dt * 0.55
+        cube.rotation.x = Math.sin(elapsed * 0.4) * 0.18
+        cube.position.y = 0.12 + Math.sin(elapsed * 0.9) * 0.08
+
+        dustClock += dt
+        if (dustClock > 0.22) {
+          dustClock = 0
+          const a = rng.float(0, Math.PI * 2)
+          dust.emit(
+            { x: Math.cos(a) * 2.6, y: rng.float(-1, 1.6), z: Math.sin(a) * 2.6 },
+            {
+              count: 1,
+              color: rng.pick(sparkColors),
+              size: rng.float(0.03, 0.08),
+              sizeEnd: 0,
+              speed: 0.25,
+              spread: 0.4,
+              life: rng.float(1.6, 3),
+              gravity: 0,
+            }
+          )
+        }
+      })
+
+      game.on("resize", () => game.camera.lookAt(0, 0.1, 0))
+      game.start()
+    </script>
+  </body>
+</html>

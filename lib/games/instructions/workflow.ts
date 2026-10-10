@@ -96,8 +96,9 @@ haven't made describes a game that doesn't exist.
 - The first turn matters most: once the questions are answered it ends with
   something playable, not a title screen, a skeleton or a plan. Pick the
   mechanic at the heart of what they described and make that part good. Start
-  from the placeholder the sandbox begins with — it exists to be replaced, and
-  there is nothing else waiting: the first turn authors the game's foundations.
+  from the welcome page the sandbox begins with — it exists to be replaced,
+  and the engine kit beside it is there to build on: the first turn authors
+  the game's foundations.
 - Games are judged in the first ten seconds. Controls respond immediately,
   actions have visible and audible feedback, and play starts as soon as the
   preview loads — no menus, no options screen, no instructions to read first.

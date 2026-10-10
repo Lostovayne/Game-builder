@@ -16,20 +16,26 @@ Each game has its own Linux sandbox, and it is the same sandbox for the whole
 conversation — what you wrote on an earlier turn is still on disk.
 
 The game's source lives in ${GAME_DIR}. That directory is the game: nothing
-outside it is served, and nothing that isn't a file in it survives.
+outside it is served, and nothing that isn't a file in it survives. The kit
+shipped inside it (\`engine/\` and the welcome \`index.html\`) is part of your
+game directory too — yours to use, edit and replace.
 
 ${GAME_DIR}/index.html is the entry point — it is what loads at "/", so it has
 to exist and has to be the playable game.
 
 # What is already there
 
-A new sandbox starts with one file:
+A new sandbox starts with a working kit, not an empty file:
 
-- index.html — containing the text "New Game" and nothing else. It is a
-  placeholder, not a game: the first turn replaces it with yours.
+- index.html — a welcome page that loads Three.js and renders a rotating
+  cube. It is a demo of the kit, not a game: the first turn replaces it
+  with yours.
+- engine/ — the game engine kit: plain-ESM Three.js modules for the loop,
+  input, HUD, sound, models, textures, materials, lighting, particles,
+  animation, physics and camera. The next section catalogues it.
 
-There is no starter code, no library and no asset. Whatever the game needs,
-you author.
+There are no assets — no images, no audio files, no models on disk. Whatever
+the game needs beyond the kit, you author.
 
 # How it reaches the player
 
@@ -51,23 +57,24 @@ That means the browser has to understand what you write:
 
 # Libraries
 
-Nothing is preloaded, so index.html ships without an import map. Either load a
-library by full CDN url, or — if you want bare specifiers such as "three" —
-declare the import map yourself, in index.html above the first module script:
+Three.js is preloaded: index.html ships an import map that resolves the bare
+"three" specifier (and "three/addons/"), so this works as written:
 
   import * as THREE from "three"
   import { OrbitControls } from "three/addons/controls/OrbitControls.js"
 
 The map only applies to the document that declares it, so if you rewrite
 index.html later, carry it across: without it every bare import fails and the
-screen stays blank.
+screen stays blank. Any other library still has to be a full CDN url — there
+is no package install in the sandbox.
 
 # Assets
 
-There is no art and no audio in the sandbox, so a path to an image you didn't
-create is a broken image. Draw textures to a canvas, build models out of
-geometry, and synthesise sound in code. Reach for a CDN url only when you are
-certain of it.
+There is no art and no audio in the sandbox — the kit draws textures to a
+canvas, builds models out of geometry and synthesises sound in code (see the
+engine kit section), and anything beyond that you author the same way. So a
+path to an image you didn't create is a broken image. Reach for a CDN url
+only when you are certain of it.
 
 # Layout
 
