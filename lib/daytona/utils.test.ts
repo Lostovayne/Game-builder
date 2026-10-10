@@ -11,12 +11,20 @@ const dbMock = vi.hoisted(() => {
   const selectLimit = vi.fn(async () =>
     state.row === undefined ? [] : [state.row]
   )
-  const updateWhere = vi.fn(async () => undefined)
+  // The predicate recorded by these mocks is the assertion surface for row
+  // scoping: without it, persisting a sandbox id to the wrong game row would
+  // pass every test here (the fake returns the same row regardless).
+  const updateWhere = vi.fn<(predicate: unknown) => Promise<undefined>>(
+    async () => undefined
+  )
   const set = vi.fn(() => ({ where: updateWhere }))
   const update = vi.fn(() => ({ set }))
+  const selectWhere = vi.fn<(predicate: unknown) => {
+    limit: typeof selectLimit
+  }>(() => ({ limit: selectLimit }))
   const select = vi.fn(() => ({
     from: vi.fn(() => ({
-      where: vi.fn(() => ({ limit: selectLimit })),
+      where: selectWhere,
     })),
   }))
 
@@ -24,6 +32,7 @@ const dbMock = vi.hoisted(() => {
     state,
     db: { select, update },
     selectLimit,
+    selectWhere,
     updateWhere,
     set,
     update,
@@ -174,6 +183,8 @@ vi.mock("node:fs/promises", () => ({
 
 import { join } from "node:path"
 
+import { eqPairs } from "@/test-support/sql-predicates"
+
 import {
   GAME_PREVIEW_PORT,
   createGameSandbox,
@@ -205,11 +216,28 @@ describe("createGameSandbox", () => {
 
     expect(sandbox.id).toBe("sandbox-1")
     expect(daytonaMock.create).toHaveBeenCalledTimes(1)
-    // Exactly the labels payload: no `name` and no extra fields.
+    // Exactly the labels payload: no `name`, no `resources`. The org's default
+    // creation path goes through the account's snapshot, and the Daytona API
+    // rejects resources on it ("Cannot specify Sandbox resources when using a
+    // snapshot"), so disk sizing is not ours to set here. Cost: the 3GiB
+    // default per sandbox caps the 30GiB org quota at ~10 active games —
+    // revisit with lifecycle cleanup if the free tier gets tight.
     expect(daytonaMock.create).toHaveBeenCalledWith({
       labels: { gameId: "game-1" },
     })
     expect(dbMock.set).toHaveBeenCalledWith({ sandboxId: "sandbox-1" })
+    // Row scoping: the id is written only to the game being provisioned.
+    // Without the `.where(eq(games.id, gameId))` predicate this fake would
+    // happily report success while the real update hit every row.
+    expect(dbMock.updateWhere).toHaveBeenCalledTimes(1)
+    expect(eqPairs(dbMock.updateWhere.mock.calls[0][0])).toEqual([
+      { column: "id", value: "game-1" },
+    ])
+    // The read that decides "already provisioned?" is scoped the same way.
+    expect(dbMock.selectWhere).toHaveBeenCalledTimes(1)
+    expect(eqPairs(dbMock.selectWhere.mock.calls[0][0])).toEqual([
+      { column: "id", value: "game-1" },
+    ])
   })
 
   it("creates the game folder with mode 755 before uploading the entrypoint", async () => {
@@ -432,6 +460,42 @@ describe("startGameServer", () => {
     // The launch command still ran and health was confirmed.
     expect(previewMock.executeSessionCommand).toHaveBeenCalledTimes(1)
     expect(previewMock.executeCommand).toHaveBeenCalledTimes(2)
+  })
+
+  it("treats an exit-0 probe with a non-200 body as unhealthy", async () => {
+    // curl exits 0 only on transport success; with `-f` a 4xx/5xx makes it
+    // exit non-zero, but a server replying 500 on `/` still needs replacing.
+    // The health contract requires BOTH exit 0 AND body "200".
+    previewMock.executeCommand
+      .mockResolvedValueOnce({ exitCode: 0, result: "500" })
+      .mockResolvedValue({ exitCode: 0, result: "200" })
+
+    await startGameServer("sandbox-1")
+
+    // The probe answered 0 but the body was not 200: the server was
+    // relaunched instead of being reused.
+    expect(previewMock.createSession).toHaveBeenCalledTimes(1)
+    expect(previewMock.executeSessionCommand).toHaveBeenCalledTimes(1)
+    expect(previewMock.executeCommand).toHaveBeenCalledTimes(2)
+  })
+
+  it("propagates a session-creation error that is not 'already exists'", async () => {
+    // Port unhealthy, and the session API fails for an unexpected reason
+    // (quota, permissions): the error must surface, not be swallowed as if
+    // the session were merely lingering.
+    previewMock.executeCommand.mockResolvedValueOnce({
+      exitCode: 7,
+      result: "000",
+    })
+    previewMock.createSession.mockRejectedValueOnce(
+      new Error("insufficient quota")
+    )
+
+    await expect(startGameServer("sandbox-1")).rejects.toThrow(
+      "insufficient quota"
+    )
+
+    expect(previewMock.executeSessionCommand).not.toHaveBeenCalled()
   })
 
   it("propagates when the initial health check itself errors", async () => {

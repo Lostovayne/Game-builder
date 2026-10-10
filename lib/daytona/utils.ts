@@ -193,6 +193,13 @@ export async function createGameSandbox(
     return { sandbox: await daytona.get(game.sandboxId) }
   }
 
+  // Default creation path: Daytona resolves the org's default snapshot. The
+  // API rejects `resources` on that path ("Cannot specify Sandbox resources
+  // when using a snapshot"), so disk sizing is not ours to set here — only
+  // the image overload accepts `resources`. Cost: the 3GiB default per
+  // sandbox caps the 30GiB org quota at ~10 active games (capacity is
+  // assigned, not used). The runtime tree stays well under 100MB; revisit
+  // with lifecycle cleanup or the image path if the free tier gets tight.
   const sandbox = await daytona.create({ labels: { gameId } })
   const sandboxId = sandbox?.id
   if (!sandboxId) {
