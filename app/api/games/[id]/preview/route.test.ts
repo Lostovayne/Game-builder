@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
+import { eqPairs } from "@/test-support/sql-predicates"
+
 // Every external boundary is mocked so this suite runs fully offline: no
 // Clerk round-trip, no Neon/DB access, no `server-only` marker, and no live
 // Daytona API call (DAYTONA_API_KEY is absent in this environment).
@@ -13,9 +15,18 @@ const authMock = vi.hoisted(() =>
 )
 
 const dbMock = vi.hoisted(() => {
-  const state: { rows: Array<{ sandboxId: string | null }> } = { rows: [] }
+  const state: {
+    rows: Array<{ sandboxId: string | null }>
+    // The SQL predicate handed to `.where(...)`. A mock that discards it
+    // would pass even if the route dropped the org-scope filter, so the
+    // predicate itself is captured and asserted.
+    predicates: unknown[]
+  } = { rows: [], predicates: [] }
   const limit = vi.fn(async () => state.rows)
-  const where = vi.fn(() => ({ limit }))
+  const where = vi.fn((predicate: unknown) => {
+    state.predicates.push(predicate)
+    return { limit }
+  })
   const from = vi.fn(() => ({ where }))
   const select = vi.fn(() => ({ from }))
   return { state, db: { select }, select, from, where, limit }
@@ -68,6 +79,7 @@ describe("GET /api/games/[id]/preview", () => {
     vi.clearAllMocks()
     authMock.mockResolvedValue({ userId: "user-1", orgId: "org-1" })
     dbMock.state.rows = []
+    dbMock.state.predicates = []
   })
 
   it("returns a short-lived signed preview URL for the org-owned game's sandbox", async () => {
@@ -88,6 +100,30 @@ describe("GET /api/games/[id]/preview", () => {
     // Exact TTL and port, minted on the returned sandbox object.
     expect(daytonaMock.getSignedPreviewUrl).toHaveBeenCalledWith(8000, 3600)
     expect(daytonaMock.getSignedPreviewUrl).toHaveBeenCalledTimes(1)
+    // The client receives the signed URL itself, not a token or an error.
+    const body = await response.json()
+    expect(body).toEqual({
+      url: "https://sandbox-1.example.daytona.io:8000/?signed=1",
+    })
+  })
+
+  it("scopes the game lookup to the id AND the caller's org", async () => {
+    dbMock.state.rows = [{ sandboxId: "sandbox-1" }]
+    utilsMock.startGameServer.mockResolvedValue({
+      sandbox: { getSignedPreviewUrl: daytonaMock.getSignedPreviewUrl },
+    })
+
+    await GET(new Request("http://localhost/api"), makeContext("game-1"))
+
+    // The mock discards nothing: the exact predicate the route passed to
+    // `.where(...)` is inspected. Without `eq(games.orgId, orgId)` any org
+    // could read any game's preview URL by guessing its id — a cross-org
+    // data leak that the row-mocking in this suite would otherwise hide.
+    expect(dbMock.state.predicates).toHaveLength(1)
+    expect(eqPairs(dbMock.state.predicates[0])).toEqual([
+      { column: "id", value: "game-1" },
+      { column: "org_id", value: "org-1" },
+    ])
   })
 
   it("returns 401 without an authenticated user", async () => {
