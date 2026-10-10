@@ -52,11 +52,20 @@ function MessageScrollerViewport({
 
 function MessageScrollerContent({
   className,
+  spacerClassName,
   ...props
 }: React.ComponentProps<typeof MessageScrollerPrimitive.Content>) {
   return (
     <MessageScrollerPrimitive.Content
       data-slot="message-scroller-content"
+      // The primitive sizes `data-message-scroller-spacer` with `Math.ceil`,
+      // which overshoots fractional (subpixel) measurements by up to ~1px;
+      // combined with the browsers' scrollHeight/clientHeight integer
+      // rounding that yields a ~2px phantom overflow and a visible scrollbar
+      // (measured in Chrome; see app/scroll-probe/). This negative margin
+      // cancels the artifact: real overflow (messages that don't fit) dwarfs
+      // 2px. tailwind-merge lets a caller's own `spacerClassName` win.
+      spacerClassName={cn("mb-[-2px]", spacerClassName)}
       className={cn("flex h-max min-h-full flex-col gap-6", className)}
       {...props}
     />
