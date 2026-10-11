@@ -14,8 +14,10 @@ A Three.js starter kit ships with the game, in the game directory:
 It is plain browser ESM, already on disk, and needs no install and no build.
 The kit's index.html declares the import map that resolves the bare "three"
 specifier, so \`import * as THREE from "three"\` works as written. If you
-rewrite index.html, carry the import map across — a missing map is the one
-mistake that blanks the screen.
+rewrite index.html, carry the import map across verbatim — same URLs and
+the same pinned three version, never a different release: the engine
+runtime is built against that exact version, and a missing map or a
+swapped version is what blanks the screen.
 
 Start from it instead of a blank file, replace what you outgrow, and keep
 what still works: the kit is there to be used, edited and deleted as the

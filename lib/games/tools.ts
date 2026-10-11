@@ -9,6 +9,7 @@ import {
   askPlayerInputSchema,
   askPlayerOutputSchema,
 } from "@/lib/games/ask-player"
+import { pinThreeImportmap, THREE_PIN } from "@/lib/games/three-pin"
 
 /**
  * Cap on what `read_file` returns in one call. Above it the content is cut at
@@ -147,6 +148,24 @@ async function uploadWithParents(
  * Bound to one game: `gameId` is the chat id, and it is what each call passes
  * to `getGameSandbox`.
  */
+/**
+ * Guard for the game's entry file: the kit's engine only runs on the pinned
+ * three release, and a model-authored import map reliably invents a stale
+ * version (`three@0.160.0`, `three@latest`) that blanks the preview. Any
+ * index.html write is normalized back to the pin, and the tool output tells
+ * the model it happened.
+ */
+function pinnedForWrite(
+  filePath: string,
+  content: string
+): { content: string; pinned: boolean } {
+  if (posix.basename(filePath) !== "index.html") {
+    return { content, pinned: false }
+  }
+  const normalized = pinThreeImportmap(content)
+  return { content: normalized, pinned: normalized !== content }
+}
+
 export function gameTools(gameId: string) {
   return {
     // The only tool without execute — human-in-the-loop: the turn pauses with
@@ -233,13 +252,15 @@ export function gameTools(gameId: string) {
       execute: async ({ path, content }) => {
         const resolved = resolveFilePath(path)
         if (!resolved.ok) return resolved
+        const stored = pinnedForWrite(resolved.path, content)
 
         return withGameSandbox(gameId, async (sandbox) => {
-          await uploadWithParents(sandbox, resolved.path, content)
+          await uploadWithParents(sandbox, resolved.path, stored.content)
           return {
             ok: true,
             path: relativeToGame(resolved.path),
-            bytes: Buffer.byteLength(content),
+            bytes: Buffer.byteLength(stored.content),
+            ...(stored.pinned ? { pinned_three: THREE_PIN } : {}),
           }
         }).catch(failure)
       },
@@ -287,14 +308,16 @@ export function gameTools(gameId: string) {
 
           if (replace_all) {
             const parts = content.split(old_text)
+            const stored = pinnedForWrite(resolved.path, parts.join(new_text))
             await sandbox.fs.uploadFile(
-              Buffer.from(parts.join(new_text)),
+              Buffer.from(stored.content),
               resolved.path
             )
             return {
               ok: true,
               path: reportPath,
               replacements: parts.length - 1,
+              ...(stored.pinned ? { pinned_three: THREE_PIN } : {}),
             }
           }
 
@@ -305,12 +328,22 @@ export function gameTools(gameId: string) {
             }
           }
 
-          const next =
+          const stored = pinnedForWrite(
+            resolved.path,
             content.slice(0, first) +
-            new_text +
-            content.slice(first + old_text.length)
-          await sandbox.fs.uploadFile(Buffer.from(next), resolved.path)
-          return { ok: true, path: reportPath, replacements: 1 }
+              new_text +
+              content.slice(first + old_text.length)
+          )
+          await sandbox.fs.uploadFile(
+            Buffer.from(stored.content),
+            resolved.path
+          )
+          return {
+            ok: true,
+            path: reportPath,
+            replacements: 1,
+            ...(stored.pinned ? { pinned_three: THREE_PIN } : {}),
+          }
         }).catch(failure)
       },
     }),
