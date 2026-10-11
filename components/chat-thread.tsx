@@ -2,11 +2,12 @@
 
 import { useChat } from "@ai-sdk/react"
 import { useTriggerChatTransport } from "@trigger.dev/sdk/chat/react"
-import type { UIMessage } from "ai"
+import { lastAssistantMessageIsCompleteWithToolCalls, type UIMessage } from "ai"
 import Image from "next/image"
 import { useRouter } from "next/navigation"
 import { useEffect, useRef, useState } from "react"
 
+import { ChatAskPlayer } from "@/components/chat-ask-player"
 import { ChatComposer } from "@/components/chat-composer"
 import { ToolCallMarker } from "@/components/chat-tool-marker"
 import { Bubble, BubbleContent } from "@/components/ui/bubble"
@@ -29,6 +30,7 @@ import {
   scheduleProgressiveStatusSteps,
 } from "@/lib/chat/progressive-status"
 import { getGameTitle } from "@/lib/games/actions"
+import { parseAskPlayerPart } from "@/lib/games/ask-player"
 import { isAwaitingNextChunk } from "@/lib/chat/stream-gap"
 import {
   isProvisionalTitle,
@@ -173,11 +175,16 @@ export function ChatThread({
     error,
     regenerate,
     setMessages,
+    addToolOutput,
   } = useChat({
     id: gameId,
     messages: initialMessages,
     transport,
     resume: !!initialSessions,
+    // Starts the continuation turn the moment every pending tool call has a
+    // result — the ask_player answer included — so the player never presses
+    // Send again after choosing an option.
+    sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithToolCalls,
   })
 
   // Pull the asynchronously refined title into the mounted sidebar. The
@@ -595,6 +602,34 @@ export function ChatThread({
                                 </span>
                               ) : null}
                               {message.parts.map((part, partIndex) => {
+                                // A pending ask_player call renders as the
+                                // question itself; once answered (or failed)
+                                // it falls through to the generic marker.
+                                const askPlayer = parseAskPlayerPart(part)
+                                if (
+                                  askPlayer &&
+                                  "state" in part &&
+                                  part.state === "input-available"
+                                ) {
+                                  return (
+                                    <div
+                                      key={askPlayer.toolCallId}
+                                      className="mt-2"
+                                    >
+                                      <ChatAskPlayer
+                                        input={askPlayer.input}
+                                        busy={isStreamingThisMessage}
+                                        onAnswer={(output) => {
+                                          void addToolOutput({
+                                            tool: "ask_player",
+                                            toolCallId: askPlayer.toolCallId,
+                                            output,
+                                          })
+                                        }}
+                                      />
+                                    </div>
+                                  )
+                                }
                                 if (part.type === "text") {
                                   // Once tool markers exist, the opening
                                   // sentence of the reply reads naturally as

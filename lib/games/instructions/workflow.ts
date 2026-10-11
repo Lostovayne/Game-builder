@@ -79,6 +79,10 @@ disk. Every path is relative to the game directory ("index.html",
   rename that runs through the file.
 - delete_file — remove a file the game no longer uses. Never index.html, which
   is what loads in the preview — write_file is how you replace it.
+- ask_player — the one tool that touches no file: it asks the player to settle
+  an undecided part of the design and pauses until they pick an option. Pick
+  the dimension first, one question per call, and only for what you would
+  otherwise be guessing at.
 
 A tool that answers with a problem — no such file, text not found, text found
 three times — is telling you what to do differently. Read the file again and

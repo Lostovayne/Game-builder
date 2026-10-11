@@ -5,6 +5,10 @@ import { tool } from "ai"
 import { z } from "zod"
 
 import { GAME_DIR } from "@/lib/daytona/constants"
+import {
+  askPlayerInputSchema,
+  askPlayerOutputSchema,
+} from "@/lib/games/ask-player"
 
 /**
  * Cap on what `read_file` returns in one call. Above it the content is cut at
@@ -145,6 +149,19 @@ async function uploadWithParents(
  */
 export function gameTools(gameId: string) {
   return {
+    // The only tool without execute — human-in-the-loop: the turn pauses with
+    // the question pending, and the player's choice is supplied by the UI via
+    // addToolOutput, validated against outputSchema. It never touches the
+    // sandbox.
+    ask_player: tool({
+      description:
+        "Ask the player to settle one undecided part of the game when guessing would throw real work away. Choose the dimension the question belongs to, then ask exactly one question with 2-4 concrete options; the player picks one and the turn continues with that choice. Never ask what the premise or an earlier answer already settled, and never stack questions.",
+      // The contract lives in lib/games/ask-player.ts so the chat UI parses
+      // pending calls against the exact same schema the model is held to.
+      inputSchema: askPlayerInputSchema,
+      outputSchema: askPlayerOutputSchema,
+    }),
+
     list_files: tool({
       description:
         "List what is in a directory of the game, one level deep. Defaults to the game directory itself. Entries come back as game-relative paths ready to pass to the other file tools.",

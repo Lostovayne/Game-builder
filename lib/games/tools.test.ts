@@ -139,8 +139,9 @@ beforeEach(() => {
 })
 
 describe("gameTools", () => {
-  it("exposes exactly the five game file tools", () => {
+  it("exposes the five file tools and ask_player", () => {
     expect(Object.keys(gameTools("game-1")).sort()).toEqual([
+      "ask_player",
       "delete_file",
       "list_files",
       "read_file",
@@ -430,5 +431,116 @@ describe("delete_file", () => {
 
     expect(result.ok).toBe(false)
     expect(result.error).toContain("ghost.js")
+  })
+})
+
+describe("ask_player", () => {
+  // The SDK types schemas as FlexibleSchema (zod or JSON-schema both fit);
+  // the tool passes zod, so the test reads them through the narrow shape it
+  // actually calls.
+  const ask = gameTools("game-1").ask_player as {
+    execute?: unknown
+    inputSchema: { safeParse: (input: unknown) => { success: boolean } }
+    outputSchema: { safeParse: (input: unknown) => { success: boolean } }
+  }
+
+  const validInput = {
+    dimension: "world",
+    question: "What is the setting of the game?",
+    options: [
+      {
+        id: "deep-sea",
+        label: "Deep sea",
+        description: "Slow drift through blue dark water",
+      },
+      {
+        id: "orbit",
+        label: "Derelict orbit",
+        description: "Low-g floating through a dead station",
+      },
+    ],
+  }
+
+  it("defines no execute — the player answers it in the UI", () => {
+    expect(ask).toBeDefined()
+    expect(ask.execute).toBeUndefined()
+  })
+
+  it("settles each of the seven game dimensions and no others", () => {
+    const dimensions = [
+      "loop",
+      "goal",
+      "challenge",
+      "controls",
+      "world",
+      "look",
+      "feel",
+    ]
+
+    for (const dimension of dimensions) {
+      const result = ask.inputSchema.safeParse({ ...validInput, dimension })
+      expect(result.success, `dimension ${dimension}`).toBe(true)
+    }
+
+    const unknown = ask.inputSchema.safeParse({
+      ...validInput,
+      dimension: "graphics",
+    })
+    expect(unknown.success).toBe(false)
+  })
+
+  it("accepts two to four options and rejects anything outside", () => {
+    const option = (id: string) => ({
+      id,
+      label: `Option ${id}`,
+      description: "what picking this means",
+    })
+
+    const three = [option("a"), option("b"), option("c")]
+    const five = [
+      option("a"),
+      option("b"),
+      option("c"),
+      option("d"),
+      option("e"),
+    ]
+
+    expect(
+      ask.inputSchema.safeParse({ ...validInput, options: three }).success
+    ).toBe(true)
+    expect(
+      ask.inputSchema.safeParse({ ...validInput, options: five }).success
+    ).toBe(false)
+    expect(
+      ask.inputSchema.safeParse({ ...validInput, options: [option("a")] })
+        .success
+    ).toBe(false)
+  })
+
+  it("requires a question and a description on every option", () => {
+    expect(
+      ask.inputSchema.safeParse({ ...validInput, question: "" }).success
+    ).toBe(false)
+    expect(
+      ask.inputSchema.safeParse({
+        ...validInput,
+        options: [
+          { id: "a", label: "A" },
+          { id: "b", label: "B", description: "what picking b means" },
+        ],
+      }).success
+    ).toBe(false)
+  })
+
+  it("returns the chosen option's id and label", () => {
+    expect(
+      ask.outputSchema.safeParse({ id: "orbit", label: "Derelict orbit" })
+        .success
+    ).toBe(true)
+    expect(
+      ask.outputSchema.safeParse({ optionId: "orbit", label: "Derelict orbit" })
+        .success
+    ).toBe(false)
+    expect(ask.outputSchema.safeParse({ id: "orbit" }).success).toBe(false)
   })
 })
