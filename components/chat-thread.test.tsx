@@ -21,6 +21,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 const chatMock = vi.hoisted(() => ({
   addToolOutput: vi.fn(),
   useChatOptions: undefined as undefined | Record<string, unknown>,
+  status: "ready" as string,
 }))
 
 vi.mock("@ai-sdk/react", () => ({
@@ -30,7 +31,7 @@ vi.mock("@ai-sdk/react", () => ({
       messages: options.messages,
       sendMessage: vi.fn(),
       stop: vi.fn(),
-      status: "ready",
+      status: chatMock.status,
       error: null,
       regenerate: vi.fn(),
       setMessages: vi.fn(),
@@ -142,6 +143,7 @@ function submitQuestionnaire() {
 
 beforeEach(() => {
   chatMock.useChatOptions = undefined
+  chatMock.status = "ready"
 })
 
 afterEach(() => {
@@ -214,5 +216,64 @@ describe("ChatThread ask_player human-in-the-loop", () => {
     ] as unknown as UIMessage[]
     // The answer landed: the SDK sends the continuation turn by itself.
     expect(armed({ messages: resolved })).toBe(true)
+  })
+})
+
+function doneTool(id: string) {
+  return {
+    type: "tool-write_file",
+    toolCallId: id,
+    input: { path: `${id}.js`, content: "// game" },
+    output: { ok: true, path: `${id}.js`, bytes: 8 },
+    state: "output-available",
+  }
+}
+
+describe("ChatThread tool history", () => {
+  it("collapses a run of tool calls behind one expandable trigger", () => {
+    render([
+      {
+        id: "b1",
+        role: "assistant",
+        parts: [
+          { type: "text", text: "Writing the files." },
+          doneTool("call-1"),
+          doneTool("call-2"),
+          doneTool("call-3"),
+        ],
+      },
+    ] as unknown as UIMessage[])
+
+    const triggers = container!.querySelectorAll(
+      "[data-slot='collapsible-trigger']"
+    )
+    expect(triggers).toHaveLength(1)
+    expect(triggers[0].textContent).toContain("3 tools")
+    // Collapsed by default: no marker rows leak into the DOM.
+    expect(container!.querySelectorAll("[data-slot='marker']").length).toBe(0)
+
+    act(() => {
+      triggers[0].dispatchEvent(new MouseEvent("click", { bubbles: true }))
+    })
+    expect(container!.querySelectorAll("[data-slot='marker']").length).toBe(3)
+  })
+
+  it("keeps the thinking indicator at the top, not inline at the end", () => {
+    chatMock.status = "streaming"
+    render([
+      {
+        id: "b1",
+        role: "assistant",
+        parts: [
+          { type: "text", text: "Built the battle chess.", state: "done" },
+        ],
+      },
+    ] as unknown as UIMessage[])
+
+    const html = container!.innerHTML
+    const indicator = html.indexOf("Pensando")
+    expect(indicator).toBeGreaterThan(-1)
+    // Above the settled text, never appended after it.
+    expect(indicator).toBeLessThan(html.indexOf("Built the battle chess."))
   })
 })

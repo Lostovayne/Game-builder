@@ -9,7 +9,7 @@ import { useEffect, useRef, useState } from "react"
 
 import { ChatAskPlayer } from "@/components/chat-ask-player"
 import { ChatComposer } from "@/components/chat-composer"
-import { ToolCallMarker } from "@/components/chat-tool-marker"
+import { ChatToolRun } from "@/components/chat-tool-run"
 import { Bubble, BubbleContent } from "@/components/ui/bubble"
 import { Message, MessageAvatar, MessageContent } from "@/components/ui/message"
 import {
@@ -30,8 +30,12 @@ import {
   scheduleProgressiveStatusSteps,
 } from "@/lib/chat/progressive-status"
 import { getGameTitle } from "@/lib/games/actions"
-import { parseAskPlayerPart } from "@/lib/games/ask-player"
+import {
+  isPendingAskPlayerPart,
+  parseAskPlayerPart,
+} from "@/lib/games/ask-player"
 import { isAwaitingNextChunk } from "@/lib/chat/stream-gap"
+import { groupToolRuns } from "@/lib/chat/tool-runs"
 import {
   isProvisionalTitle,
   pollForRefinedTitle,
@@ -547,6 +551,7 @@ export function ChatThread({
                   const streamingReasoning = reasoningParts.find(
                     (part) => part.state === "streaming" || !part.state
                   )
+                  const segments = groupToolRuns(message.parts)
                   return (
                     <MessageScrollerItem
                       key={itemId}
@@ -586,12 +591,16 @@ export function ChatThread({
                                   ))}
                                 </details>
                               ) : null}
-                              {/* Reasoning is aggregated above; text spans and
-                                  tool markers render interleaved, in stream
-                                  order, exactly as the agent produced them. */}
+                              {/* The status line lives at the TOP of the
+                                  bubble — first-chunk wait and mid-stream
+                                  gaps alike — never appended after the
+                                  text it precedes. */}
                               {isStreamingThisMessage &&
-                              !hasVisibleText &&
-                              !hasToolParts ? (
+                              ((!hasVisibleText && !hasToolParts) ||
+                                isAwaitingNextChunk(
+                                  message.parts,
+                                  isStreamingThisMessage
+                                )) ? (
                                 <span
                                   className="animate-pulse text-muted-foreground"
                                   aria-live="polite"
@@ -601,16 +610,25 @@ export function ChatThread({
                                     : "Pensando…"}
                                 </span>
                               ) : null}
-                              {message.parts.map((part, partIndex) => {
+                              {segments.map((segment) => {
+                                // Consecutive tool calls render as one
+                                // expandable run; text and the pending
+                                // question stay standalone in stream order.
+                                if (segment.kind === "tool-run") {
+                                  return (
+                                    <ChatToolRun
+                                      key={segment.parts[0].toolCallId}
+                                      parts={segment.parts}
+                                    />
+                                  )
+                                }
+                                const { part, index: partIndex } = segment
                                 // A pending ask_player call renders as the
-                                // question itself; once answered (or failed)
-                                // it falls through to the generic marker.
-                                const askPlayer = parseAskPlayerPart(part)
-                                if (
-                                  askPlayer &&
-                                  "state" in part &&
-                                  part.state === "input-available"
-                                ) {
+                                // question itself; once answered it folds
+                                // into the run like any other tool.
+                                if (isPendingAskPlayerPart(part)) {
+                                  const askPlayer = parseAskPlayerPart(part)
+                                  if (!askPlayer) return null
                                   return (
                                     <div
                                       key={askPlayer.toolCallId}
@@ -631,50 +649,14 @@ export function ChatThread({
                                   )
                                 }
                                 if (part.type === "text") {
-                                  // Once tool markers exist, the opening
-                                  // sentence of the reply reads naturally as
-                                  // narrative between them.
-                                  if (!part.text) return null
+                                  // The opening sentence of the reply reads
+                                  // naturally as narrative between runs.
                                   return (
                                     <span key={partIndex}>{part.text}</span>
                                   )
                                 }
-                                if (
-                                  part.type.startsWith("tool-") ||
-                                  part.type === "dynamic-tool"
-                                ) {
-                                  return (
-                                    <ToolCallMarker
-                                      key={
-                                        "toolCallId" in part
-                                          ? part.toolCallId
-                                          : partIndex
-                                      }
-                                      part={
-                                        part as Extract<
-                                          UIMessage["parts"][number],
-                                          { toolCallId: string }
-                                        >
-                                      }
-                                    />
-                                  )
-                                }
                                 return null
                               })}
-                              {/* Gap detector: the last part settled but the
-                                  next chunk has not arrived — the model is
-                                  thinking, say so instead of looking frozen. */}
-                              {isAwaitingNextChunk(
-                                message.parts,
-                                isStreamingThisMessage
-                              ) ? (
-                                <span
-                                  className="animate-pulse text-muted-foreground"
-                                  aria-live="polite"
-                                >
-                                  Pensando…
-                                </span>
-                              ) : null}
                             </BubbleContent>
                           </Bubble>
                         </MessageContent>
