@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest"
 
 import { gameTools } from "@/lib/games/tools"
+import { ASK_PLAYER_DIMENSIONS } from "@/lib/games/ask-player"
 
 import { gameInstructions } from "./index"
 import { engine } from "./engine"
@@ -67,6 +68,39 @@ describe("engine catalogue", () => {
     expect(text).not.toContain("A new sandbox starts with one file")
     expect(text).not.toContain("There is no starter code")
     expect(text).not.toContain("Nothing is preloaded")
+  })
+})
+
+describe("workflow first-turn question loop", () => {
+  // The regression this pins: the agent asked a single question and built.
+  // Three lines used to license that ("Then build it, in the same message",
+  // "A bare premise is most of the seven", and no stop rule), so the first
+  // turn has to read as a checklist to complete before any file is written.
+
+  it("lists every ask_player dimension as a part to settle", () => {
+    for (const dimension of ASK_PLAYER_DIMENSIONS) {
+      expect(
+        workflow,
+        `workflow checklist mentions ${dimension}`
+      ).toContain(`- ${dimension} —`)
+    }
+  })
+
+  it("requires settling the undecided parts before writing any file", () => {
+    expect(workflow).toContain(
+      "Before you write a single file, walk that list top to bottom"
+    )
+    expect(workflow).toContain("one ask_player call for each undecided part")
+  })
+
+  it("gives an explicit stop rule instead of an open-ended build", () => {
+    expect(workflow).toContain("Stop asking when no part is left open")
+    expect(workflow).not.toContain("Then build it, in the same message.")
+  })
+
+  it("says a bare premise leaves most of the seven open", () => {
+    expect(workflow).toContain("A bare premise leaves most of the seven")
+    expect(workflow).not.toContain("A bare premise is most of the seven")
   })
 })
 
