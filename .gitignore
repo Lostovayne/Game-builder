@@ -58,3 +58,4 @@ NUL
 .trigger
 # Sentry Config File
 .env.sentry-build-plugin
+.gentle-ai-default-agent.json
