@@ -101,7 +101,8 @@ pnpm install
 
 ### 2. Configure environment variables
 
-Create `.env.local` in the project root:
+Secrets live in Infisical — this repository has no `.env.local`. Link the
+project to Infisical and make sure these variables exist there:
 
 ```dotenv
 # Clerk — https://dashboard.clerk.com
@@ -125,6 +126,17 @@ GEMINI_CHAT_MODEL=gemini-3.8-flash
 ```
 
 The environment schema in `lib/env.ts` validates required values when server configuration is loaded. Model names can be changed with the corresponding `GEMINI_*_MODEL` variables.
+
+How those variables reach the process depends on where the command runs:
+
+| Where                  | How variables are loaded                                                          |
+| ---------------------- | --------------------------------------------------------------------------------- |
+| Local development      | `infisical run --` injects them — `dev`, `trigger:dev` and `trigger:deploy` do it |
+| Railway (production)   | Railway injects them as service variables; Infisical syncs to Railway             |
+
+The Infisical CLI is only available on a developer machine. It is intentionally
+**not** used in production, and `build`/`start` do not wrap their command with
+`infisical run --` for that reason — see [Building and serving locally](#building-and-serving-locally).
 
 ### 3. Push the development schema
 
@@ -173,6 +185,23 @@ Open [http://localhost:3000](http://localhost:3000), sign in, select or create a
 | `pnpm run db:studio`      | Open Drizzle Studio                           |
 | `pnpm run trigger:dev`    | Start the local Trigger.dev worker            |
 | `pnpm run trigger:deploy` | Deploy Trigger.dev tasks                      |
+
+### Building and serving locally
+
+`build` and `start` run the bare command on purpose: Railway builds and serves
+the app in an environment that has no Infisical CLI, and it injects the
+variables itself as service variables. Wrapping them with `infisical run --`
+makes that build fail with `infisical: command not found`.
+
+The tradeoff is that locally those same two commands have no environment, so
+they fail with `❌ Invalid environment variables` from `lib/env.ts` — that is the
+schema rejecting an empty environment, not a broken build. Run them through the
+CLI explicitly:
+
+```bash
+infisical run -- pnpm run build
+infisical run -- pnpm run start
+```
 
 ## Project structure
 
