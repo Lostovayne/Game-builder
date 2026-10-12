@@ -3,7 +3,7 @@
     "servers": {
       "sentry": {
         "type": "remote",
-        "url": "https://mcp.sentry.dev/mcp?utm_source=plugin"
+        "url": "https://mcp.sentry.dev/mcp"
       }
     }
   }
