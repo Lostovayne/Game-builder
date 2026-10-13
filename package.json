@@ -32,7 +32,7 @@
     "@sentry/nextjs": "^11.6.0",
     "@sentry/node": "11.6.0",
     "@shadcn/react": "^0.3.1",
-    "@trigger.dev/sdk": "4.7.2",
+    "@trigger.dev/sdk": "4.7.3",
     "ai": "^7.0.137",
     "class-variance-authority": "^0.7.1",
     "cmdk": "^1.1.1",
@@ -59,7 +59,7 @@
   "devDependencies": {
     "@sentry/esbuild-plugin": "5.4.1",
     "@tailwindcss/postcss": "^4.3.3",
-    "@trigger.dev/build": "4.7.2",
+    "@trigger.dev/build": "4.7.3",
     "@types/node": "^26.6.5",
     "@types/pg": "^8.23.1",
     "@types/react": "^19.3.0",

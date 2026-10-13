@@ -48,8 +48,8 @@ importers:
         specifier: ^0.3.1
         version: 0.3.1(@types/react@19.3.0)(react@19.3.0)
       '@trigger.dev/sdk':
-        specifier: 4.7.2
-        version: 4.7.2(ai@7.0.137(zod@4.6.6))(react@19.3.0)(supports-color@10.2.2)(zod@4.6.6)
+        specifier: 4.7.3
+        version: 4.7.3(ai@7.0.137(zod@4.6.6))(react@19.3.0)(supports-color@10.2.2)(zod@4.6.6)
       ai:
         specifier: ^7.0.137
         version: 7.0.137(zod@4.6.6)
@@ -124,8 +124,8 @@ importers:
         specifier: ^4.3.3
         version: 4.3.3
       '@trigger.dev/build':
-        specifier: 4.7.2
-        version: 4.7.2(magicast@0.3.5)(supports-color@10.2.2)(typescript@6.0.3)(zod@4.6.6)
+        specifier: 4.7.3
+        version: 4.7.3(magicast@0.3.5)(supports-color@10.2.2)(typescript@6.0.3)(zod@4.6.6)
       '@types/node':
         specifier: ^26.6.5
         version: 26.6.5
@@ -3024,18 +3024,6 @@ packages:
   '@tanstack/query-core@5.104.2':
     resolution: {integrity: sha512-/qbsxJK5c3Ve1aFIULWYNcT2jeRUAiD4HME6Eu2ZdpofHoVgAjpkQhLg5xHuOoBkTPQUJLfP7zOxy0qsBcqROA==}
 
-  '@trigger.dev/build@4.7.2':
-    resolution: {integrity: sha512-mnX7N0CwVDn3AC2py6Tl57EcQT7sIdnFpI3ZxFK/d2XlQolhDN/cwp2+7sPIrHHwti8NyNXCf6Lq/c/ezZZjsg==}
-    engines: {node: '>=18.20.0'}
-    peerDependencies:
-      '@typescript/typescript6': ^6.0.0
-      typescript: '>=5.0.0'
-    peerDependenciesMeta:
-      '@typescript/typescript6':
-        optional: true
-      typescript:
-        optional: true
-
   '@trigger.dev/build@4.7.3':
     resolution: {integrity: sha512-HseT4sGAWt4D0tEW17dntJH+YS7RP8l3ZY0KHRuJbkdWl0nNZHHYgcOSf/7jXxvSAPknPWIpBNeMi+6D8NUJGw==}
     engines: {node: '>=18.20.0'}
@@ -3047,12 +3035,6 @@ packages:
         optional: true
       typescript:
         optional: true
-
-  '@trigger.dev/core@4.7.2':
-    resolution: {integrity: sha512-dFRWuEXJ84B1meMfIc6laRB0w9rfGWJ8PEJJdIliny3kDg0cMRxeSVcgn1UsGxbBPo8aM3i3VRg5ZVfj6/XD9g==}
-    engines: {node: '>=18.20.0'}
-    peerDependencies:
-      zod: ^3.25.56 || ^4.0.0
 
   '@trigger.dev/core@4.7.3':
     resolution: {integrity: sha512-WCURVW4TsCtm40zdF1gKQvEYOia+zIoWzjk3vxdHsFZpQ0kAyXT+8UtSvCbW+WRKK8M7KGcHVDJ4pqiI662+tw==}
@@ -3082,8 +3064,8 @@ packages:
       valibot:
         optional: true
 
-  '@trigger.dev/sdk@4.7.2':
-    resolution: {integrity: sha512-GiifK8Or+4Qfc5q/VPxDkrwdE1YmTPyiyhbNLbtCIEj4qvzEgqL4wCprnyRpZKmfeCLhHJV0/h4f5Vm6xexsew==}
+  '@trigger.dev/sdk@4.7.3':
+    resolution: {integrity: sha512-ixP8PNlqaBWzVh4oDDJJm7NkcxT/WwJ4a/9u+4AZerrY2iQdxOQ2QaVk6uen/lYrh//+zmSx5SaLixf0z0aLRw==}
     engines: {node: '>=18.20.0'}
     peerDependencies:
       '@ai-sdk/otel': '>=1.0.0-0 <2'
@@ -8661,23 +8643,6 @@ snapshots:
 
   '@tanstack/query-core@5.104.2': {}
 
-  '@trigger.dev/build@4.7.2(magicast@0.3.5)(supports-color@10.2.2)(typescript@6.0.3)(zod@4.6.6)':
-    dependencies:
-      '@prisma/config': 6.19.3(magicast@0.3.5)
-      '@trigger.dev/core': 4.7.2(supports-color@10.2.2)(zod@4.6.6)
-      mlly: 1.8.2
-      pkg-types: 1.3.1
-      tinyglobby: 0.2.17
-      tsconfck: 3.1.3(typescript@6.0.3)
-    optionalDependencies:
-      typescript: 6.0.3
-    transitivePeerDependencies:
-      - bufferutil
-      - magicast
-      - supports-color
-      - utf-8-validate
-      - zod
-
   '@trigger.dev/build@4.7.3(magicast@0.3.5)(supports-color@10.2.2)(typescript@6.0.3)(zod@4.5.4)':
     dependencies:
       '@prisma/config': 6.19.3(magicast@0.3.5)
@@ -8695,43 +8660,22 @@ snapshots:
       - utf-8-validate
       - zod
 
-  '@trigger.dev/core@4.7.2(supports-color@10.2.2)(zod@4.6.6)':
+  '@trigger.dev/build@4.7.3(magicast@0.3.5)(supports-color@10.2.2)(typescript@6.0.3)(zod@4.6.6)':
     dependencies:
-      '@bugsnag/cuid': 3.2.2
-      '@electric-sql/client': 1.0.14
-      '@google-cloud/precise-date': 4.0.0
-      '@jsonhero/path': 1.0.21
-      '@opentelemetry/api': 1.9.1
-      '@opentelemetry/api-logs': 0.219.0
-      '@opentelemetry/core': 2.8.0(@opentelemetry/api@1.9.1)
-      '@opentelemetry/exporter-logs-otlp-http': 0.219.0(@opentelemetry/api@1.9.1)
-      '@opentelemetry/exporter-metrics-otlp-http': 0.219.0(@opentelemetry/api@1.9.1)
-      '@opentelemetry/exporter-trace-otlp-http': 0.219.0(@opentelemetry/api@1.9.1)
-      '@opentelemetry/host-metrics': 0.38.3(@opentelemetry/api@1.9.1)
-      '@opentelemetry/instrumentation': 0.219.0(@opentelemetry/api@1.9.1)(supports-color@10.2.2)
-      '@opentelemetry/resources': 2.8.0(@opentelemetry/api@1.9.1)
-      '@opentelemetry/sdk-logs': 0.219.0(@opentelemetry/api@1.9.1)
-      '@opentelemetry/sdk-metrics': 2.8.0(@opentelemetry/api@1.9.1)
-      '@opentelemetry/sdk-trace-base': 2.8.0(@opentelemetry/api@1.9.1)
-      '@opentelemetry/sdk-trace-node': 2.8.0(@opentelemetry/api@1.9.1)
-      '@s2-dev/streamstore': 0.25.0(supports-color@10.2.2)
-      dequal: 2.0.3
-      eventsource: 3.0.7
-      eventsource-parser: 3.1.1
-      humanize-duration: 3.35.0
-      jose: 5.10.0
-      nanoid: 3.3.18
-      prom-client: 15.1.3
-      socket.io-client: 4.7.5(supports-color@10.2.2)
-      std-env: 3.10.0
-      tinyexec: 0.3.2
-      uncrypto: 0.1.3
-      zod: 4.6.6
-      zod-validation-error: 5.0.0(zod@4.6.6)
+      '@prisma/config': 6.19.3(magicast@0.3.5)
+      '@trigger.dev/core': 4.7.3(supports-color@10.2.2)(zod@4.6.6)
+      mlly: 1.8.2
+      pkg-types: 1.3.1
+      tinyglobby: 0.2.17
+      tsconfck: 3.1.3(typescript@6.0.3)
+    optionalDependencies:
+      typescript: 6.0.3
     transitivePeerDependencies:
       - bufferutil
+      - magicast
       - supports-color
       - utf-8-validate
+      - zod
 
   '@trigger.dev/core@4.7.3(supports-color@10.2.2)(zod@4.5.4)':
     dependencies:
@@ -8771,6 +8715,44 @@ snapshots:
       - supports-color
       - utf-8-validate
 
+  '@trigger.dev/core@4.7.3(supports-color@10.2.2)(zod@4.6.6)':
+    dependencies:
+      '@bugsnag/cuid': 3.2.2
+      '@electric-sql/client': 1.0.14
+      '@google-cloud/precise-date': 4.0.0
+      '@jsonhero/path': 1.0.21
+      '@opentelemetry/api': 1.9.1
+      '@opentelemetry/api-logs': 0.219.0
+      '@opentelemetry/core': 2.8.0(@opentelemetry/api@1.9.1)
+      '@opentelemetry/exporter-logs-otlp-http': 0.219.0(@opentelemetry/api@1.9.1)
+      '@opentelemetry/exporter-metrics-otlp-http': 0.219.0(@opentelemetry/api@1.9.1)
+      '@opentelemetry/exporter-trace-otlp-http': 0.219.0(@opentelemetry/api@1.9.1)
+      '@opentelemetry/host-metrics': 0.38.3(@opentelemetry/api@1.9.1)
+      '@opentelemetry/instrumentation': 0.219.0(@opentelemetry/api@1.9.1)(supports-color@10.2.2)
+      '@opentelemetry/resources': 2.8.0(@opentelemetry/api@1.9.1)
+      '@opentelemetry/sdk-logs': 0.219.0(@opentelemetry/api@1.9.1)
+      '@opentelemetry/sdk-metrics': 2.8.0(@opentelemetry/api@1.9.1)
+      '@opentelemetry/sdk-trace-base': 2.8.0(@opentelemetry/api@1.9.1)
+      '@opentelemetry/sdk-trace-node': 2.8.0(@opentelemetry/api@1.9.1)
+      '@s2-dev/streamstore': 0.25.0(supports-color@10.2.2)
+      dequal: 2.0.3
+      eventsource: 3.0.7
+      eventsource-parser: 3.1.1
+      humanize-duration: 3.35.0
+      jose: 5.10.0
+      nanoid: 3.3.18
+      prom-client: 15.1.3
+      socket.io-client: 4.7.5(supports-color@10.2.2)
+      std-env: 3.10.0
+      tinyexec: 0.3.2
+      uncrypto: 0.1.3
+      zod: 4.6.6
+      zod-validation-error: 5.0.0(zod@4.6.6)
+    transitivePeerDependencies:
+      - bufferutil
+      - supports-color
+      - utf-8-validate
+
   '@trigger.dev/schema-to-json@4.7.3(supports-color@10.2.2)(zod@4.5.4)':
     dependencies:
       '@sodaru/yup-to-json-schema': 2.0.1
@@ -8783,11 +8765,11 @@ snapshots:
       - supports-color
       - utf-8-validate
 
-  '@trigger.dev/sdk@4.7.2(ai@7.0.137(zod@4.6.6))(react@19.3.0)(supports-color@10.2.2)(zod@4.6.6)':
+  '@trigger.dev/sdk@4.7.3(ai@7.0.137(zod@4.6.6))(react@19.3.0)(supports-color@10.2.2)(zod@4.6.6)':
     dependencies:
       '@opentelemetry/api': 1.9.1
       '@opentelemetry/semantic-conventions': 1.41.1
-      '@trigger.dev/core': 4.7.2(supports-color@10.2.2)(zod@4.6.6)
+      '@trigger.dev/core': 4.7.3(supports-color@10.2.2)(zod@4.6.6)
       uncrypto: 0.1.3
       zod: 4.6.6
     optionalDependencies:
