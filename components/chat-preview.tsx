@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useState } from "react"
 
+import * as Sentry from "@sentry/nextjs"
+
 import { previewFrameKey } from "@/lib/chat/preview-revision"
 
 /**
@@ -13,11 +15,18 @@ import { previewFrameKey } from "@/lib/chat/preview-revision"
  * - 404 → the game has no sandbox, so there is nothing to preview
  * - anything else (401, 404 on missing game, 502, malformed body) → a
  *   recoverable error the user can retry
+ *
+ * The error `reason` is a stable code for querying in Sentry logs; the
+ * `message` stays user-facing prose.
  */
 export type PreviewResolution =
   | { status: "ready"; url: string }
   | { status: "no-preview" }
-  | { status: "error"; message: string }
+  | {
+      status: "error"
+      message: string
+      reason: "unexpected_body" | "unauthorized" | "upstream"
+    }
 
 export function resolvePreviewResponse(
   responseStatus: number,
@@ -36,6 +45,7 @@ export function resolvePreviewResponse(
     return {
       status: "error",
       message: "The preview service returned an unexpected response.",
+      reason: "unexpected_body",
     }
   }
 
@@ -43,13 +53,17 @@ export function resolvePreviewResponse(
     return { status: "no-preview" }
   }
 
-  return {
-    status: "error",
-    message:
-      responseStatus === 401
-        ? "Your session expired. Sign in again to load the preview."
-        : "The preview could not be loaded. Try again in a moment.",
-  }
+  return responseStatus === 401
+    ? {
+        status: "error",
+        message: "Your session expired. Sign in again to load the preview.",
+        reason: "unauthorized",
+      }
+    : {
+        status: "error",
+        message: "The preview could not be loaded. Try again in a moment.",
+        reason: "upstream",
+      }
 }
 
 type PreviewState =
@@ -81,9 +95,13 @@ export function ChatPreview({
   const [attempt, setAttempt] = useState(0)
 
   const retry = useCallback(() => {
+    Sentry.logger.info("Game preview retry requested", {
+      game_id: gameId,
+      retry_attempt: attempt + 1,
+    })
     setState({ kind: "loading" })
     setAttempt((current) => current + 1)
-  }, [])
+  }, [gameId, attempt])
 
   useEffect(() => {
     const controller = new AbortController()
@@ -102,12 +120,26 @@ export function ChatPreview({
         const resolution = resolvePreviewResponse(response.status, body)
         switch (resolution.status) {
           case "ready":
+            Sentry.logger.info("Game preview loaded", {
+              game_id: gameId,
+              retry_attempt: attempt,
+            })
             setState({ kind: "ready", url: resolution.url })
             break
           case "no-preview":
+            Sentry.logger.info("Game preview has no sandbox to render", {
+              game_id: gameId,
+              retry_attempt: attempt,
+            })
             setState({ kind: "no-preview" })
             break
           case "error":
+            Sentry.logger.error("Game preview failed to load", {
+              game_id: gameId,
+              response_status: response.status,
+              reason: resolution.reason,
+              retry_attempt: attempt,
+            })
             setState({ kind: "error", message: resolution.message })
             break
         }
@@ -116,6 +148,12 @@ export function ChatPreview({
         if (controller.signal.aborted || isAbortError(error)) {
           return
         }
+        Sentry.logger.error("Game preview request threw", {
+          game_id: gameId,
+          retry_attempt: attempt,
+          error_name: error instanceof Error ? error.name : "unknown",
+          error_message: error instanceof Error ? error.message : String(error),
+        })
         setState({
           kind: "error",
           message: "The preview could not be loaded. Try again in a moment.",

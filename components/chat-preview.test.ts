@@ -45,4 +45,33 @@ describe("resolvePreviewResponse", () => {
 
     expect(result.status).toBe("error")
   })
+
+  it("tags a 200 response without a usable url with the unexpected_body reason", () => {
+    const result = resolvePreviewResponse(200, { something: "else" })
+
+    expect(result).toMatchObject({
+      status: "error",
+      reason: "unexpected_body",
+    })
+  })
+
+  it("tags a 401 response with the unauthorized reason", () => {
+    const result = resolvePreviewResponse(401, { error: "Unauthorized" })
+
+    expect(result).toMatchObject({
+      status: "error",
+      reason: "unauthorized",
+    })
+  })
+
+  it("tags any other non-200 response with the upstream reason", () => {
+    const result = resolvePreviewResponse(502, {
+      error: "Failed to generate preview URL",
+    })
+
+    expect(result).toMatchObject({
+      status: "error",
+      reason: "upstream",
+    })
+  })
 })
