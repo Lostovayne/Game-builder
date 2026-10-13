@@ -11,7 +11,7 @@ description: >
   and you are writing task code, switch to the trigger-authoring-tasks skill.
 type: core
 library: trigger.dev
-library_version: "4.7.2"
+library_version: "4.7.3"
 sources:
   - docs/quick-start.mdx
   - docs/manual-setup.mdx
@@ -29,7 +29,7 @@ The fastest path is the CLI's own wizard, which performs every mechanical step b
 and also offers to install the MCP server and these agent skills:
 
 ```bash
-pnpm dlx trigger.dev@latest init
+npx trigger.dev@latest init
 ```
 
 Prefer `init` when you can. Do the manual steps further down when `init` does not fit
@@ -41,14 +41,14 @@ The CLI can start account creation, but a person must verify their email and aut
 access. In an agent session, start a resumable login instead of blocking on the CLI:
 
 ```bash
-pnpm dlx trigger.dev@latest login --email user@example.com --name "Alex Smith" --no-browser --no-wait
+npx trigger.dev@latest login --email user@example.com --name "Alex Smith" --no-browser --no-wait
 ```
 
 Give the printed URL to the user and ask them to complete sign-in and authorization.
 After they confirm, resume the saved authorization:
 
 ```bash
-pnpm dlx trigger.dev@latest login --no-browser
+npx trigger.dev@latest login --no-browser
 ```
 
 Do not create accounts or approve CLI access on the user's behalf. Once authenticated,
@@ -63,7 +63,7 @@ create the organization in its dashboard first.
 For an interactive terminal:
 
 ```bash
-pnpm dlx trigger.dev@latest login
+npx trigger.dev@latest login
 ```
 
 For an agent or headless terminal, use the resumable flow described above. Add
@@ -76,8 +76,8 @@ Pin both to the same version as the `trigger.dev` CLI you run; the CLI warns on 
 mismatch during `dev`/`deploy`.
 
 ```bash
-pnpm add @trigger.dev/sdk@latest
-pnpm add --save-dev @trigger.dev/build@latest
+npm add @trigger.dev/sdk@latest
+npm add --save-dev @trigger.dev/build@latest
 ```
 
 ### 3. Write `trigger.config.ts`
@@ -149,7 +149,7 @@ TRIGGER_SECRET_KEY=tr_dev_sk_xxxxxxxx
 ### 7. Run the dev server
 
 ```bash
-pnpm dlx trigger.dev@latest dev
+npx trigger.dev@latest dev
 ```
 
 Leave it running. Tasks register with the dashboard, where the user can fire a test run
@@ -188,7 +188,7 @@ See the manual setup docs for full Turborepo examples before scaffolding either.
 
 2. **Mismatched CLI and SDK versions.** A `trigger.dev` CLI on a different major than
    `@trigger.dev/sdk` breaks dev/deploy.
-   - Wrong: `pnpm dlx trigger.dev@latest dev` against an old pinned SDK.
+   - Wrong: `npx trigger.dev@latest dev` against an old pinned SDK.
    - Correct: keep `trigger.dev`, `@trigger.dev/sdk`, and `@trigger.dev/build` on the same version.
 
 3. **Importing from `@trigger.dev/sdk/v3` or using `client.defineJob()`.** Both are old.
@@ -222,4 +222,4 @@ Docs:
 
 ## Version
 
-Generated for @trigger.dev/sdk 4.7.2. Re-run the trigger.dev skills installer after upgrading.
+Generated for @trigger.dev/sdk 4.7.3. Re-run the trigger.dev skills installer after upgrading.
