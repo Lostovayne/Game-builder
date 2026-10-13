@@ -1,5 +1,6 @@
 allowBuilds:
   '@depot/cli': true
+  '@sentry/cli': true
   core-js: true
   es5-ext: true
   esbuild: true

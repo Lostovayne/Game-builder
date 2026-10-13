@@ -11,6 +11,12 @@ Sentry.init({
   // the request overhead sane.
   tracesSampleRate: process.env.NODE_ENV === "development" ? 1.0 : 0.1,
 
+  integrations: [
+    // Capture console.warn/console.error as structured Sentry logs with their
+    // arguments as queryable attributes; the calls still print locally.
+    Sentry.consoleLoggingIntegration({ levels: ["warn", "error"] }),
+  ],
+
   dataCollection: {
     // Prompts and game source flow through this app's request bodies, so they
     // stay out of Sentry. Everything else uses the permissive defaults.

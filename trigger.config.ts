@@ -1,3 +1,5 @@
+import { sentryEsbuildPlugin } from "@sentry/esbuild-plugin"
+import { esbuildPlugin } from "@trigger.dev/build/extensions"
 import { additionalFiles } from "@trigger.dev/build/extensions/core"
 import { defineConfig } from "@trigger.dev/sdk"
 
@@ -30,6 +32,19 @@ export default defineConfig({
     // `lib/games/runtime/**` is read at runtime but never imported, so the
     // bundler would not pull it in. Copy it into the build preserving the
     // project-relative path that `createGameSandbox` resolves via cwd.
-    extensions: [additionalFiles({ files: ["lib/games/runtime/**/*"] })],
+    extensions: [
+      additionalFiles({ files: ["lib/games/runtime/**/*"] }),
+      // Upload source maps to Sentry on every deploy so worker stack traces
+      // map back to original source. Auth token flows from Infisical (the
+      // trigger:deploy script wraps the CLI with `infisical run`).
+      esbuildPlugin(
+        sentryEsbuildPlugin({
+          org: "khalest",
+          project: "sandbox",
+          authToken: process.env.SENTRY_AUTH_TOKEN,
+        }),
+        { placement: "last", target: "deploy" }
+      ),
+    ],
   },
 })

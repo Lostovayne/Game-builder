@@ -46,6 +46,7 @@ export function ChatComposer({
 
   function handleSubmit(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault()
+
     const text = value.trim()
     if (!text || isSubmitting) return
     onSubmitAction(text)

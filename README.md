@@ -2,10 +2,9 @@
 
 <p align="center">
   <img
-    src="public/capture.png"
+    src="public/image.webp"
     alt="Game-builder workspace showing the chat-based game creation experience"
-    width="100%"
-    style="max-width: 100%; height: auto; border-radius: 16px; border: 1px solid #30363d;"
+    style="max-width: 70%; height: auto; border-radius: 25px; border: 2px solid #30363d;"
   />
 </p>
 
@@ -63,9 +62,9 @@ Prompt
 
 ## Roadmap
 
-- [ ] Generate and display a playable game preview.
-- [ ] Add game management actions such as rename, duplicate, and delete.
-- [ ] Add per-game model and system-prompt settings.
+- [x] Generate and display a playable game preview.
+- [x] Add game management actions such as rename, duplicate, and delete.
+- [x] Add per-game model and system-prompt settings.
 - [ ] Add usage limits and rate limiting for AI generation.
 - [ ] Add end-to-end coverage for the create-to-chat flow.
 
@@ -129,10 +128,10 @@ The environment schema in `lib/env.ts` validates required values when server con
 
 How those variables reach the process depends on where the command runs:
 
-| Where                  | How variables are loaded                                                          |
-| ---------------------- | --------------------------------------------------------------------------------- |
-| Local development      | `infisical run --` injects them — `dev`, `trigger:dev` and `trigger:deploy` do it |
-| Railway (production)   | Railway injects them as service variables; Infisical syncs to Railway             |
+| Where                | How variables are loaded                                                          |
+| -------------------- | --------------------------------------------------------------------------------- |
+| Local development    | `infisical run --` injects them — `dev`, `trigger:dev` and `trigger:deploy` do it |
+| Railway (production) | Railway injects them as service variables; Infisical syncs to Railway             |
 
 The Infisical CLI is only available on a developer machine. It is intentionally
 **not** used in production, and `build`/`start` do not wrap their command with
