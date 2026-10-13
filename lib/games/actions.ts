@@ -6,6 +6,8 @@ import { generateId, generateText } from "ai"
 import { revalidatePath } from "next/cache"
 import { after } from "next/server"
 
+import * as Sentry from "@sentry/nextjs"
+
 import { getTitleModel } from "@/lib/ai"
 import { games } from "@/db/schema"
 import { db } from "@/lib/db"
@@ -82,8 +84,15 @@ export async function createGame(input: { title: string }) {
           .where(eq(games.id, game.id))
         revalidatePath("/", "layout")
       }
-    } catch (err) {
-      console.error("[createGame] background title refinement failed", err)
+    } catch (error) {
+      // Background work fails invisibly: the redirect already happened and
+      // nothing user-visible regresses. This log is the only signal that a
+      // refinement never landed.
+      Sentry.logger.error("Background title refinement failed", {
+        game_id: game.id,
+        error_name: error instanceof Error ? error.name : "unknown",
+        error_message: error instanceof Error ? error.message : String(error),
+      })
     }
   })
 

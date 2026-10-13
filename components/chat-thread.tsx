@@ -1,6 +1,7 @@
 "use client"
 
 import { useChat } from "@ai-sdk/react"
+import * as Sentry from "@sentry/nextjs"
 import { useTriggerChatTransport } from "@trigger.dev/sdk/chat/react"
 import { lastAssistantMessageIsCompleteWithToolCalls, type UIMessage } from "ai"
 import Image from "next/image"
@@ -136,14 +137,23 @@ export function ChatThread({
       if (event.chatId !== gameId) return
       switch (event.type) {
         case "first-chunk":
-          console.debug(
-            `[chat] first-chunk (${event.chunkType ?? "?"}) after ${event.sinceSendMs ?? "?"}ms`
-          )
+          Sentry.logger.debug("Chat stream first chunk", {
+            game_id: gameId,
+            ...(event.chunkType != null
+              ? { chunk_type: String(event.chunkType) }
+              : {}),
+            ...(event.sinceSendMs != null
+              ? { since_send_ms: event.sinceSendMs }
+              : {}),
+          })
           break
         case "turn-completed":
-          console.debug(
-            `[chat] turn-completed after ${event.sinceSendMs ?? "?"}ms`
-          )
+          Sentry.logger.debug("Chat turn completed", {
+            game_id: gameId,
+            ...(event.sinceSendMs != null
+              ? { since_send_ms: event.sinceSendMs }
+              : {}),
+          })
           // Precise empty-stream detector: the run finished server-side
           // (transcript saved) but this client has no assistant reply yet.
           // Happens when `.out` closes past a stale cursor or drops chunks.
@@ -156,14 +166,18 @@ export function ChatThread({
           break
         case "stream-error":
         case "message-send-failed":
-          console.error(`[chat] ${event.type}`, event)
+          Sentry.logger.error("Chat stream error", {
+            game_id: gameId,
+            event_type: event.type,
+          })
           break
         case "run-pending-version":
           // Deployment skew: the run is parked, nothing answers until the
           // new version lands. Indicator correctly stays on "contacting".
-          console.warn(
-            `[chat] run parked waiting for deployment (source: ${event.source})`
-          )
+          Sentry.logger.warn("Chat run parked waiting for deployment", {
+            game_id: gameId,
+            source: String(event.source),
+          })
           break
         default:
           break
@@ -288,7 +302,11 @@ export function ChatThread({
         try {
           server = await getGameMessages(gameId)
         } catch (err) {
-          console.error("[chat] recovery fetch failed", err)
+          Sentry.logger.warn("Chat recovery fetch failed", {
+            game_id: gameId,
+            error_name: err instanceof Error ? err.name : "unknown",
+            error_message: err instanceof Error ? err.message : String(err),
+          })
           continue // network blip — next poll retries
         }
         const fresh = messagesRef.current
@@ -396,7 +414,11 @@ export function ChatThread({
         return
       }
     } catch (err) {
-      console.error("[chat] pre-retry fetch failed", err)
+      Sentry.logger.warn("Chat pre-retry fetch failed", {
+        game_id: gameId,
+        error_name: err instanceof Error ? err.name : "unknown",
+        error_message: err instanceof Error ? err.message : String(err),
+      })
     } finally {
       if (recoveringForRef.current === userId) recoveringForRef.current = null
       setRecovering(false)
@@ -438,7 +460,11 @@ export function ChatThread({
     )
       return
     void transport.preload(gameId).catch((err) => {
-      console.error("[chat] preload failed", err)
+      Sentry.logger.warn("Chat session preload failed", {
+        game_id: gameId,
+        error_name: err instanceof Error ? err.name : "unknown",
+        error_message: err instanceof Error ? err.message : String(err),
+      })
     })
   }, [gameId, transport, initialMessages, initialSessions])
 
