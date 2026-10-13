@@ -10,6 +10,14 @@
       ./engine — replace it on the first turn, but keep the import map: a
       missing map is what blanks the screen when a module says `from "three"`.
     -->
+    <!--
+      First script on the page: a plain (non-module) error reporter.
+      It has to run before any module so a syntax error in the game's
+      main module — which kills that module — still gets caught and
+      answered when the app polls. Keep this tag above every
+      type="module" script when you rewrite this page.
+    -->
+    <script src="./report.js"></script>
     <script type="importmap">
       {
         "imports": {

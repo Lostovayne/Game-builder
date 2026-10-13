@@ -33,6 +33,19 @@ A new sandbox starts with a working kit, not an empty file:
 - engine/ — the game engine kit: plain-ESM Three.js modules for the loop,
   input, HUD, sound, models, textures, materials, lighting, particles,
   animation, physics and camera. The next section catalogues it.
+- report.js — the error reporter the preview panel talks to. It is a
+  plain script (not a module) and every page loads it first, before
+  any \`type="module"\` script:
+
+    <script src="./report.js"></script>
+    <script type="module" src="./main.js"></script>
+
+  It keeps the first error the frame throws — including a syntax
+  error that kills the main module — and answers the app's
+  \`{ type: "game-ping" }\` polls with \`{ type: "game-status", error }\`,
+  where \`error\` is that first error or \`null\` while the game is
+  healthy. Keep it loaded first in every page you ship: it is how a
+  broken game tells you why the preview is blank.
 
 There are no assets — no images, no audio files, no models on disk. Whatever
 the game needs beyond the kit, you author.
