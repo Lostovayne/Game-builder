@@ -1,3 +1,4 @@
+import * as Sentry from "@sentry/node"
 import { chat } from "@trigger.dev/sdk/ai"
 import { stepCountIs } from "ai"
 
@@ -74,7 +75,18 @@ export const gameChat = chat.agent({
     // hook only runs server-side in the worker, which resolves the
     // `react-server` condition and has DAYTONA_API_KEY available.
     const { createGameSandbox } = await import("@/lib/daytona/utils")
-    await createGameSandbox(chatId)
+    try {
+      await createGameSandbox(chatId)
+    } catch (error) {
+      // Provisioning is the run's foundation: without this log a failed
+      // chat start is only a generic task error with no sandbox context.
+      Sentry.logger.error("Sandbox provisioning failed at chat start", {
+        game_id: chatId,
+        error_name: error instanceof Error ? error.name : "unknown",
+        error_message: error instanceof Error ? error.message : String(error),
+      })
+      throw error
+    }
   },
   run: async ({ messages, tools, signal, streamText }) => {
     assertTranscriptNotEmpty(messages)

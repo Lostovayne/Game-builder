@@ -107,11 +107,22 @@ const sandboxMock = vi.hoisted(() => {
       deletions.length = 0
       listings.length = 0
     },
+    // Default: a healthy sandbox. A test simulating provisioning failure
+    // overrides it once via mockImplementationOnce.
+    getGameSandbox: vi.fn(async () => ({ sandbox: { fs } })),
   }
 })
 
 vi.mock("@/lib/daytona/utils", () => ({
-  getGameSandbox: async () => ({ sandbox: { fs: sandboxMock.fs } }),
+  getGameSandbox: sandboxMock.getGameSandbox,
+}))
+
+const sentryMock = vi.hoisted(() => ({
+  error: vi.fn(),
+}))
+
+vi.mock("@sentry/node", () => ({
+  logger: { error: sentryMock.error },
 }))
 
 import { GAME_DIR } from "@/lib/daytona/constants"
@@ -148,6 +159,29 @@ describe("gameTools", () => {
       "replace_text",
       "write_file",
     ])
+  })
+})
+
+describe("sandbox failure logging", () => {
+  it("logs a structured error and still answers ok:false when sandbox resolution fails", async () => {
+    sandboxMock.getGameSandbox.mockImplementationOnce(async () => {
+      throw new Error("Daytona unavailable")
+    })
+
+    const result = await call("write_file", {
+      path: "index.html",
+      content: "x",
+    })
+
+    expect(result).toMatchObject({ ok: false })
+    expect(sentryMock.error).toHaveBeenCalledWith(
+      "Game sandbox unavailable for tool call",
+      expect.objectContaining({
+        game_id: "game-1",
+        error_name: "Error",
+        error_message: "Daytona unavailable",
+      })
+    )
   })
 })
 

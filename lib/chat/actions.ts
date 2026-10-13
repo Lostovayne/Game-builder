@@ -5,6 +5,8 @@ import { chat, type ChatStartSessionParams } from "@trigger.dev/sdk/ai"
 import { auth } from "@clerk/nextjs/server"
 import type { UIMessage } from "ai"
 
+import * as Sentry from "@sentry/nextjs"
+
 import { getGame } from "@/lib/games/queries"
 import type { gameChat } from "@/trigger/chat"
 
@@ -14,10 +16,22 @@ export async function startGameSession(
   params: ChatStartSessionParams<typeof gameChat>
 ) {
   const { userId } = await auth()
-  if (!userId) throw new Error("Unauthorized")
+  if (!userId) {
+    Sentry.logger.warn("Chat session start rejected", {
+      chat_id: params.chatId,
+      reason: "unauthorized",
+    })
+    throw new Error("Unauthorized")
+  }
 
   const game = await getGame(params.chatId)
-  if (!game) throw new Error("Not found")
+  if (!game) {
+    Sentry.logger.warn("Chat session start rejected", {
+      chat_id: params.chatId,
+      reason: "not_found",
+    })
+    throw new Error("Not found")
+  }
 
   return start(params)
 }
@@ -31,16 +45,34 @@ export async function startGameSession(
  */
 export async function getGameMessages(chatId: string): Promise<UIMessage[]> {
   const game = await getGame(chatId)
-  if (!game) throw new Error("Not found")
+  if (!game) {
+    Sentry.logger.warn("Chat message fetch rejected", {
+      chat_id: chatId,
+      reason: "not_found",
+    })
+    throw new Error("Not found")
+  }
   return (game.messages ?? []) as UIMessage[]
 }
 
 export async function mintGameAccessToken(chatId: string): Promise<string> {
   const { userId } = await auth()
-  if (!userId) throw new Error("Unauthorized")
+  if (!userId) {
+    Sentry.logger.warn("Chat access token mint rejected", {
+      chat_id: chatId,
+      reason: "unauthorized",
+    })
+    throw new Error("Unauthorized")
+  }
 
   const game = await getGame(chatId)
-  if (!game) throw new Error("Not found")
+  if (!game) {
+    Sentry.logger.warn("Chat access token mint rejected", {
+      chat_id: chatId,
+      reason: "not_found",
+    })
+    throw new Error("Not found")
+  }
 
   return triggerAuth.createPublicToken({
     scopes: {

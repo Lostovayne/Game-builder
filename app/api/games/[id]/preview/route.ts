@@ -3,6 +3,8 @@ import "server-only"
 import { auth } from "@clerk/nextjs/server"
 import { and, eq } from "drizzle-orm"
 
+import * as Sentry from "@sentry/nextjs"
+
 import { GAME_PREVIEW_PORT, startGameServer } from "@/lib/daytona/utils"
 import { games } from "@/db/schema"
 import { db } from "@/lib/db"
@@ -25,6 +27,7 @@ export async function GET(
 ) {
   const { userId, orgId } = await auth()
   if (!userId || !orgId) {
+    Sentry.logger.warn("Preview request rejected", { reason: "unauthorized" })
     return Response.json({ error: "Unauthorized" }, { status: 401 })
   }
 
@@ -53,10 +56,12 @@ export async function GET(
 
     return Response.json({ url: signed.url })
   } catch (error) {
-    console.error(
-      `Preview URL generation failed for game ${id}:`,
-      error instanceof Error ? error.message : error
-    )
+    Sentry.logger.error("Preview URL generation failed", {
+      game_id: id,
+      sandbox_id: sandboxId,
+      error_name: error instanceof Error ? error.name : "unknown",
+      error_message: error instanceof Error ? error.message : String(error),
+    })
     return Response.json(
       { error: "Failed to generate preview URL" },
       { status: 502 }

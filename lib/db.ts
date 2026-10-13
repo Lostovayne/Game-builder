@@ -1,6 +1,7 @@
 import "server-only"
 
 import { parseEnv } from "@neon/env"
+import * as Sentry from "@sentry/node"
 import { drizzle } from "drizzle-orm/node-postgres"
 import { Pool } from "pg"
 
@@ -30,6 +31,19 @@ const connectionString = postgres.databaseUrl.replace(
 )
 
 const pool = globalForDb.pool ?? new Pool({ connectionString })
+
+// An idle pooled client can die under it (Postgres restart, network drop,
+// idle timeout). pg surfaces that as an `error` event on the pool; with no
+// listener Node treats it as an uncaught exception and kills the process.
+// Log it as a structured error and let the pool replace the dead client.
+if (!globalForDb.pool) {
+  pool.on("error", (error: Error) => {
+    Sentry.logger.error("Database pool idle client error", {
+      error_name: error.name,
+      error_message: error.message,
+    })
+  })
+}
 
 if (process.env.NODE_ENV !== "production") {
   globalForDb.pool = pool

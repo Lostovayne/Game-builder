@@ -1,6 +1,7 @@
 import { posix } from "node:path"
 
 import type { Sandbox } from "@daytona/sdk"
+import * as Sentry from "@sentry/node"
 import { tool } from "ai"
 import { z } from "zod"
 
@@ -84,13 +85,28 @@ function failure(error: unknown): { ok: false; error: string } {
  * statically. `getGameSandbox`
  * provisions the sandbox at most once and starts it if it is stopped, so this
  * is only ever reached with a path that already passed confinement.
+ *
+ * A sandbox-resolution failure is logged before it propagates: without this,
+ * every tool of the turn fails with the same opaque answer and nothing in
+ * Sentry explains why. Failures inside `run` itself (file ops, commands) are
+ * the agent's normal retry loop and stay unlogged by design.
  */
 async function withGameSandbox<T>(
   gameId: string,
   run: (sandbox: Sandbox) => Promise<T>
 ): Promise<T> {
   const { getGameSandbox } = await import("@/lib/daytona/utils")
-  const { sandbox } = await getGameSandbox(gameId)
+  let sandbox: Sandbox
+  try {
+    ;({ sandbox } = await getGameSandbox(gameId))
+  } catch (error) {
+    Sentry.logger.error("Game sandbox unavailable for tool call", {
+      game_id: gameId,
+      error_name: error instanceof Error ? error.name : "unknown",
+      error_message: error instanceof Error ? error.message : String(error),
+    })
+    throw error
+  }
   return run(sandbox)
 }
 
