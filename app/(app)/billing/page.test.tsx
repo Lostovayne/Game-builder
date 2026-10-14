@@ -1,12 +1,18 @@
 import { describe, expect, it, vi } from "vitest"
 
-const { protect } = vi.hoisted(() => ({
-  protect: vi.fn(async () => {}),
-}))
+const { protect, auth, reconcileCredits, getCreditBalance } = vi.hoisted(
+  () => {
+    const protect = vi.fn(async () => {})
+    const auth = vi.fn(async () => ({ orgId: "org_123" }))
+    const reconcileCredits = vi.fn(async () => {})
+    const getCreditBalance = vi.fn(async () => 4_200_000_000n)
+    return { protect, auth, reconcileCredits, getCreditBalance }
+  }
+)
 
 vi.mock("@clerk/nextjs/server", () => ({
   // Clerk's `auth` is callable AND carries `.protect` as a property.
-  auth: Object.assign(() => ({}), { protect }),
+  auth: Object.assign(auth, { protect }),
 }))
 
 vi.mock("@clerk/nextjs", () => ({
@@ -14,6 +20,9 @@ vi.mock("@clerk/nextjs", () => ({
     return null
   },
 }))
+
+vi.mock("@/lib/credits/reconcile", () => ({ reconcileCredits }))
+vi.mock("@/lib/credits/ledger", () => ({ getCreditBalance }))
 
 import { PricingTable } from "@clerk/nextjs"
 
@@ -66,6 +75,19 @@ describe("BillingPage", () => {
     expect(protect).toHaveBeenCalledWith({ unauthenticatedUrl: "/sign-in" })
   })
 
+  it("reconciles the org's subscription before showing the balance", async () => {
+    await BillingPage()
+
+    expect(reconcileCredits).toHaveBeenCalledWith("org_123")
+  })
+
+  it("shows the org's reconciled credit balance", async () => {
+    const tree = await BillingPage()
+
+    expect(getCreditBalance).toHaveBeenCalledTimes(1)
+    expect(text(tree)).toContain("$4.20")
+  })
+
   it("renders exactly one PricingTable bound to organizations", async () => {
     const tree = await BillingPage()
 
@@ -96,7 +118,6 @@ describe("BillingPage", () => {
     const content = text(tree)
 
     expect(content).toContain("Available credits")
-    expect(content).toContain("$8.80")
     expect(content).toContain("Keep the studio running")
     expect(content).toContain(
       "Builder adds $10.00 every month, and unused credits roll over."

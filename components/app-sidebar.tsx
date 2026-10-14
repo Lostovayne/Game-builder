@@ -32,7 +32,13 @@ type SidebarGame = {
   title: string
 }
 
-export function AppSidebar({ games }: { games: SidebarGame[] }) {
+export function AppSidebar({
+  games,
+  credits,
+}: {
+  games: SidebarGame[]
+  credits: string
+}) {
   const pathname = usePathname()
 
   return (
@@ -146,7 +152,7 @@ export function AppSidebar({ games }: { games: SidebarGame[] }) {
               <CoinsIcon />
               <span>Credits</span>
             </SidebarMenuButton>
-            <SidebarMenuBadge>$1.00</SidebarMenuBadge>
+            <SidebarMenuBadge>{credits}</SidebarMenuBadge>
           </SidebarMenuItem>
         </SidebarMenu>
         <SidebarMenu>

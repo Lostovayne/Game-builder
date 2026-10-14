@@ -52,13 +52,24 @@ function billingEntry(tree: unknown): AnyElement | undefined {
   )[0]
 }
 
+/** Concatenates every string a tree renders, so copy can be asserted verbatim. */
+function text(node: unknown): string {
+  if (node === null || node === undefined || typeof node === "boolean") {
+    return ""
+  }
+  if (typeof node === "string" || typeof node === "number") return String(node)
+  if (Array.isArray(node)) return node.map(text).join("")
+  if (typeof node !== "object") return ""
+  return text((node as AnyElement).props?.children)
+}
+
 describe("AppSidebar billing link", () => {
   beforeEach(() => {
     pathname.current = "/"
   })
 
   it("routes the credits entry to /billing", () => {
-    const tree = AppSidebar({ games: [] })
+    const tree = AppSidebar({ games: [], credits: "$21.00" })
 
     const entry = billingEntry(tree)
 
@@ -69,8 +80,14 @@ describe("AppSidebar billing link", () => {
   it("highlights the credits entry while on /billing", () => {
     pathname.current = "/billing"
 
-    const entry = billingEntry(AppSidebar({ games: [] }))
+    const entry = billingEntry(AppSidebar({ games: [], credits: "$21.00" }))
 
     expect(entry?.props?.isActive).toBe(true)
+  })
+
+  it("shows the balance passed by the layout, not a hardcoded amount", () => {
+    const tree = AppSidebar({ games: [], credits: "$21.00" })
+
+    expect(text(tree)).toContain("$21.00")
   })
 })
