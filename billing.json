@@ -1,0 +1,37 @@
+{
+  "billing": {
+    "features": {},
+    "free_trial_requires_payment_method": true,
+    "organization_enabled": true,
+    "plans": {
+      "builder": {
+        "amount": 2000,
+        "annual_monthly_amount": 0,
+        "currency": "usd",
+        "description": "$10 in game-building credits added every month.",
+        "features": [],
+        "free_trial_days": null,
+        "free_trial_enabled": false,
+        "is_recurring": true,
+        "name": "Builder",
+        "payer_type": "org",
+        "publicly_visible": true
+      },
+      "free_org": {
+        "amount": 0,
+        "annual_monthly_amount": 0,
+        "currency": "",
+        "description": "",
+        "features": [],
+        "free_trial_days": null,
+        "free_trial_enabled": false,
+        "is_recurring": true,
+        "name": "Free",
+        "payer_type": "org",
+        "publicly_visible": true
+      }
+    },
+    "user_enabled": false
+  },
+  "config_version": "v1_41b934b4"
+}
