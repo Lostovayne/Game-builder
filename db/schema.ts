@@ -1,10 +1,12 @@
 import { sql } from "drizzle-orm"
 import {
+  bigint,
   index,
   jsonb,
   pgTable,
   text,
   timestamp,
+  unique,
   uuid,
 } from "drizzle-orm/pg-core"
 import type { UIMessage } from "ai"
@@ -45,6 +47,32 @@ export const games = pgTable(
     index("games_org_id_created_at_idx").on(
       table.orgId,
       table.createdAt.desc()
+    ),
+  ]
+)
+
+// Append-only credit ledger. Schema only — nothing reads or writes it yet.
+export const creditLedger = pgTable(
+  "credit_ledger",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    // Clerk organization id, not a foreign key (same as `games.org_id`).
+    orgId: text("org_id").notNull(),
+    // Idempotency/purpose key, e.g. `step:<responseId>`.
+    entryKey: text("entry_key").notNull(),
+    // Billionths of a dollar; negative debits, positive credits. `bigint`
+    // mode keeps full int64 precision (a JS number would silently lose
+    // precision above 2^53 ≈ $9M in these units).
+    amount: bigint("amount", { mode: "bigint" }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .default(sql`now()`),
+  },
+  (table) => [
+    // One row per (org, entry_key): re-recording the same event is a no-op.
+    unique("credit_ledger_org_id_entry_key_unique").on(
+      table.orgId,
+      table.entryKey
     ),
   ]
 )

@@ -14,6 +14,17 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 Schema changes go live with `pnpm run db:push` (Drizzle Kit `push` against `DATABASE_URL_UNPOOLED`). This project is in development with no backwards-compat needs, so no migration files are kept — `db:generate` / `db:migrate` and the `drizzle/` folder are not used.
 
+Secrets are injected by Infisical — there is no `.env` / `.env.local` in the repo. Always run DB commands through Infisical (default env is `dev`):
+
+```bash
+infisical run --env=dev -- pnpm run db:push    # push schema to the remote Neon DB
+infisical run --env=dev -- pnpm run db:studio  # local studio against the remote DB
+```
+
+- Check Infisical login with `infisical profile list` (CLI ≥ 0.43 has no `auth` / `environments` subcommands).
+- `drizzle-kit push` is non-interactive for additive changes; destructive diffs prompt.
+- Verify a push by reading `information_schema` / `pg_indexes` through `infisical run --env=dev -- node <script>` using the `pg` client from `node_modules` — never print the connection URL.
+
 <!-- END:drizzle-dev-rules -->
 
 <!-- TRIGGER.DEV SKILLS START -->
